@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iread</title>
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('iread-theme'); // 'light' | 'dark' | 'system' | null
+          var sys = matchMedia('(prefers-color-scheme: dark)').matches;
+          var dark = saved === 'dark' || ((saved === 'system' || !saved) && sys);
+          var el = document.documentElement;
+          el.classList.toggle('dark', dark);
+          if (saved === 'light') el.classList.add('theme-light');
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

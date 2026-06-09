@@ -1,0 +1,4 @@
+onlyBuiltDependencies:
+  - esbuild
+minimumReleaseAgeExclude:
+  - hono@4.12.25
