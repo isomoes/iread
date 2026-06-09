@@ -116,7 +116,7 @@ export function AppShell({
         className="flex items-center gap-2 border-b border-border bg-surface-elevated px-3"
         style={{ gridArea: 'topbar', minHeight: '48px' }}
       >
-        {isMobile && activePane !== 'sidebar' && (
+        {isMobile && activePane !== 'sidebar' ? (
           <button
             type="button"
             onClick={onBack}
@@ -126,6 +126,11 @@ export function AppShell({
             <ArrowLeft weight="regular" aria-hidden />
             <span className="num text-xs">{backLabel}</span>
           </button>
+        ) : (
+          <div className="flex shrink-0 items-baseline gap-1.5 px-1" aria-label="iread">
+            <span className="text-sm font-semibold tracking-tight text-text-primary">iread</span>
+            <span className="num text-[10px] text-text-muted">v{__APP_VERSION__}</span>
+          </div>
         )}
         <div className="flex flex-1 items-center justify-end gap-2">{topbar}</div>
       </header>
