@@ -1,5 +1,5 @@
 // ArticleRow: one row in the article list. role="option" with aria-selected.
-// Shows UnreadDot, title, source feedTitle, mono relative time, and a star toggle.
+// Shows UnreadDot, title, source feedTitle, mono published date, and a star toggle.
 // Read/unread + starred are spelled into the accessible name (never color alone).
 // whileTap scale 0.98; selected gets the shared layoutId="rowSelect" accent bar
 // (DESIGN Sections 4, 7, 10). The shell owns roving tabindex via the `tabIndex` prop.
@@ -7,7 +7,7 @@ import { forwardRef } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Star } from '@phosphor-icons/react';
 import { UnreadDot } from './UnreadDot';
-import { RelativeTime } from './RelativeTime';
+import { PublishedDate } from './PublishedDate';
 import type { ItemSummary } from '../../shared/types';
 
 interface ArticleRowProps {
@@ -68,7 +68,7 @@ export const ArticleRow = forwardRef<HTMLDivElement, ArticleRowProps>(
             <span className="truncate">{item.feedTitle}</span>
             <span aria-hidden="true">-</span>
             <span className="num shrink-0">
-              <RelativeTime value={item.publishedAt} />
+              <PublishedDate value={item.publishedAt} />
             </span>
           </span>
         </span>

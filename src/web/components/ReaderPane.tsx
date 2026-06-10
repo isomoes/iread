@@ -11,7 +11,7 @@ import { ReaderSkeleton } from './ReaderSkeleton';
 import { EmptyState } from './EmptyState';
 import { ErrorState } from './ErrorState';
 import { Toolbar } from './Toolbar';
-import { RelativeTime } from './RelativeTime';
+import { PublishedDate } from './PublishedDate';
 import type { PaneState } from './paneState';
 import type { Item } from '../../shared/types';
 import type { Ref } from 'react';
@@ -93,7 +93,7 @@ export function ReaderPane({
             ) : null}
             <span aria-hidden="true">-</span>
             <span className="num">
-              <RelativeTime value={item.publishedAt} />
+              <PublishedDate value={item.publishedAt} />
             </span>
           </div>
         </header>
