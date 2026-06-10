@@ -336,14 +336,16 @@ Keys are case-sensitive (Shift matters): `j` is not `J`. All bindings run throug
 
 | Key | Action | Effect |
 |---|---|---|
-| `j` / ArrowDown | Next article | Move selected item down 1 in the current list; roving focus + scroll into view. Stops at last (no wrap). |
-| `k` / ArrowUp | Previous article | Move up 1; same behavior. Stops at first. |
+| `j` / ArrowDown | Down in focused pane | Pane-contextual: in the list, move item selection down 1 (roving focus + scroll into view); in the sidebar, move feed/view selection down 1 (focus follows, loads its items); in the reader, scroll down. Stops at the end (no wrap). |
+| `k` / ArrowUp | Up in focused pane | As `j`, upward; the reader scrolls up. Stops at the start. |
 | `n` | Next unread | Jump to the next unread item below the current; wrap to first unread from top if none below; if none, polite live-region note and no-op. |
 | `g` | Top | Select first item; focus + scroll to top. (Single press, no `gg` chord in MVP.) |
 | `G` | Bottom | Select last item; focus + scroll to bottom. |
 | `Enter` / `o` | Open / focus reader | Render selected item in reader, mark read (optimistic, idempotent), move DOM focus into the reader scroll container. |
-| `J` / `]` | Next feed/view | Move sidebar selection down (smart views then feeds); load its items; auto-select first item; focus stays in the list. |
-| `K` / `[` | Previous feed/view | As above, up. |
+| `h` / ArrowLeft | Focus pane left | Move DOM focus one pane left (reader -> list -> sidebar): sidebar lands on the selected feed/view, list on the roving row. Stops at the sidebar (no wrap). On < 768px also routes the visible pane. |
+| `l` / ArrowRight | Focus pane right | As above, right (sidebar -> list -> reader); the reader focuses its scroll container. Stops at the reader. |
+| `f` | Reader page forward | Scroll the reader down a full page (eased glide). Targets the reader wherever focus is; on < 768px only when the reader pane is mounted/visible. |
+| `b` | Reader page back | As `f`, upward. |
 | `m` | Toggle read/unread | Optimistically flip `isRead`; row state + feed `unreadCount` update; selection unchanged. |
 | `s` | Toggle star | Optimistically flip `isStarred`; in Starred view an unstarred item leaves the list and selection advances. |
 | `A` | Mark current feed/view read | Optimistically mark the current scope read; `unreadCount` to 0; selection stays. Undo toast. |

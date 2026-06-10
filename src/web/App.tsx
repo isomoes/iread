@@ -4,6 +4,7 @@
 // aria-live region for action results (DESIGN Section 7).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useReducedMotion } from 'motion/react';
 import { AppShell, type ActivePane } from './components/AppShell';
 import { HelpOverlay } from './components/HelpOverlay';
 import { Toast, ToastViewport } from './components/Toast';
@@ -46,10 +47,14 @@ const SMART_VIEW_TARGETS: SidebarTarget[] = [
   { kind: 'starred' },
 ];
 
+/** Left-to-right pane order for h/l horizontal focus movement. */
+const PANE_ORDER: ActivePane[] = ['sidebar', 'list', 'reader'];
+
 export function App() {
   const ui = useUiStore();
   const { selection, selectedItemId, searchText, helpOpen } = ui;
   const { theme, resolved, setTheme, cycleTheme } = useTheme();
+  const reduceMotion = useReducedMotion();
 
   const debouncedQ = useDebouncedSearch();
   // Mirror the debounced query into the items module so optimistic onMutate can
@@ -99,6 +104,7 @@ export function App() {
 
   /* ---- Refs for focus management ---- */
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const readerRef = useRef<HTMLElement>(null);
 
   /* ---- Selection / sidebar actions ---- */
   const selectView = useCallback(
@@ -253,6 +259,102 @@ export function App() {
     row?.focus();
   }, []);
 
+  /* ---- Horizontal pane focus (h/l, DESIGN Section 7) ---- */
+  const focusPane = useCallback((pane: ActivePane) => {
+    if (pane === 'sidebar') {
+      // The selected feed row, else the active smart view, else any button.
+      const root = document.querySelector('aside[aria-label="Feeds"]');
+      const target =
+        root?.querySelector<HTMLElement>('[aria-current="true"]') ??
+        root?.querySelector<HTMLElement>('[aria-pressed="true"]') ??
+        root?.querySelector<HTMLElement>('button');
+      target?.focus();
+    } else if (pane === 'list') {
+      // The roving-tabindex row (selected, else first).
+      document.querySelector<HTMLElement>('#articles [tabindex="0"]')?.focus();
+    } else {
+      readerRef.current?.focus();
+    }
+  }, []);
+
+  /* Momentum-style reader scrolling for j/k/Arrow (line) and f/b (full page). Each
+     press nudges a target; one rAF loop eases the live scrollTop toward it, so holding
+     the key glides continuously instead of stepping. Reduced motion -> instant jump. */
+  const readerScroll = useRef({ target: 0, raf: 0 });
+  const scrollReader = useCallback(
+    (dir: -1 | 1, amount: 'line' | 'page' = 'line') => {
+      const el = readerRef.current;
+      if (!el) return;
+      const max = el.scrollHeight - el.clientHeight;
+      if (max <= 0) return;
+      // Full page keeps a sliver of overlap (0.9) for reading continuity.
+      const frac = amount === 'page' ? 0.9 : 0.16;
+      const step = Math.max(48, Math.round(el.clientHeight * frac));
+
+      if (reduceMotion) {
+        el.scrollTop = Math.max(0, Math.min(max, el.scrollTop + dir * step));
+        return;
+      }
+
+      const s = readerScroll.current;
+      // Re-seed the target from the live position whenever no glide is in flight, so
+      // manual wheel/trackpad scrolling and article changes stay in sync.
+      if (!s.raf) s.target = el.scrollTop;
+      s.target = Math.max(0, Math.min(max, s.target + dir * step));
+
+      const tick = () => {
+        const node = readerRef.current;
+        if (!node) {
+          s.raf = 0;
+          return;
+        }
+        const diff = s.target - node.scrollTop;
+        if (Math.abs(diff) <= 1) {
+          node.scrollTop = s.target;
+          s.raf = 0;
+          return;
+        }
+        const ease = diff * 0.22;
+        // Guarantee >= 1px of progress so an integer-snapped scrollTop can't stall.
+        node.scrollTop = node.scrollTop + (Math.abs(ease) < 1 ? Math.sign(diff) : ease);
+        s.raf = requestAnimationFrame(tick);
+      };
+      if (!s.raf) s.raf = requestAnimationFrame(tick);
+    },
+    [reduceMotion],
+  );
+
+  /** Move DOM focus onto the freshly selected feed/view after a sidebar j/k. */
+  const onSidebarFocusFollow = useCallback(() => {
+    // One frame so the sidebar re-renders the new aria-current/aria-pressed target first.
+    requestAnimationFrame(() => focusPane('sidebar'));
+  }, [focusPane]);
+
+  const detectPane = useCallback((): ActivePane => {
+    const active = document.activeElement as HTMLElement | null;
+    if (active && active !== document.body) {
+      if (readerRef.current?.contains(active)) return 'reader';
+      if (document.querySelector('aside[aria-label="Feeds"]')?.contains(active)) return 'sidebar';
+      if (document.getElementById('articles')?.contains(active)) return 'list';
+    }
+    // Focus is in the topbar or nowhere: fall back to the routed pane (authoritative
+    // on < 768px, the last-known pane on desktop).
+    return activePane;
+  }, [activePane]);
+
+  const onMovePaneFocus = useCallback(
+    (delta: -1 | 1) => {
+      const current = detectPane();
+      const idx = PANE_ORDER.indexOf(current);
+      const next = PANE_ORDER[Math.max(0, Math.min(PANE_ORDER.length - 1, idx + delta))]!;
+      if (next === current) return;
+      goToPane(next); // keeps the < 768px single-pane router in sync; inert on desktop
+      // One frame so the mobile router can mount the target pane before focusing.
+      requestAnimationFrame(() => focusPane(next));
+    },
+    [detectPane, goToPane, focusPane],
+  );
+
   const onEscape = useCallback(() => {
     // Priority: (1) close help; (2) clear search + blur to list;
     // (3) if reader focused, return focus to the selected row; (4) no-op.
@@ -285,6 +387,10 @@ export function App() {
     sidebarTargets,
     currentSidebarIndex,
     onSelectSidebar: selectSidebar,
+    onMovePaneFocus,
+    getFocusedPane: detectPane,
+    onScrollReader: scrollReader,
+    onSidebarFocusFollow,
     onToggleRead,
     onToggleStar,
     onMarkAllRead,
@@ -422,6 +528,7 @@ export function App() {
             if (item?.link) window.open(item.link, '_blank', 'noopener,noreferrer');
           },
           state: readerState,
+          scrollRef: readerRef,
           onBack,
         }}
       />

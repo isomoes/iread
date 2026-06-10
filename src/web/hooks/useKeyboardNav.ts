@@ -4,6 +4,7 @@
 
 import { useEffect, useRef } from 'react';
 import type { ItemSummary } from '../../shared/types';
+import type { ActivePane } from '../components/AppShell';
 
 /** A navigable sidebar target: a smart view or a feed. Ordered views-first. */
 export type SidebarTarget =
@@ -24,6 +25,16 @@ export interface KeyboardNavConfig {
   /** Index of the currently-selected sidebar target, or -1. */
   currentSidebarIndex: number;
   onSelectSidebar: (target: SidebarTarget) => void;
+
+  /** Move pane focus horizontally (h/l): -1 toward the sidebar, +1 toward the reader. */
+  onMovePaneFocus: (delta: -1 | 1) => void;
+
+  /** Which pane currently holds focus; j/k and the arrow aliases dispatch per pane. */
+  getFocusedPane: () => ActivePane;
+  /** Scroll the reader (j/k = line, f/b = full page): dir -1 up, +1 down. */
+  onScrollReader: (dir: -1 | 1, amount: 'line' | 'page') => void;
+  /** After a sidebar-focused j/k selection, move DOM focus onto the new feed/view row. */
+  onSidebarFocusFollow: () => void;
 
   /** Item-scoped actions. id is the current selection. */
   onToggleRead: (id: number) => void;
@@ -97,22 +108,44 @@ export function useKeyboardNav(config: KeyboardNavConfig): void {
       const { items, selectedItemId } = c;
       const idx = indexOfSelected(items, selectedItemId);
 
+      // Vertical nav is pane-contextual (DESIGN Section 7): in the list it moves the
+      // item selection; in the sidebar it moves the feed/view selection (DOM focus
+      // follows so repeated presses keep walking); in the reader it scrolls.
+      const moveItem = (delta: 1 | -1): void => {
+        if (items.length === 0) return;
+        const nextIdx = idx < 0 ? 0 : Math.max(0, Math.min(items.length - 1, idx + delta));
+        const next = items[nextIdx];
+        if (next) c.onSelectItem(next.id);
+      };
+      const moveSidebar = (delta: 1 | -1): void => {
+        const targets = c.sidebarTargets;
+        if (targets.length === 0) return;
+        const cur = c.currentSidebarIndex;
+        const nextIdx = cur < 0 ? 0 : Math.max(0, Math.min(targets.length - 1, cur + delta));
+        const t = targets[nextIdx];
+        if (!t) return;
+        c.onSelectSidebar(t);
+        c.onSidebarFocusFollow();
+      };
+
       switch (e.key) {
-        /* ---- Vertical item nav (no wrap) ---- */
+        /* ---- Vertical nav, pane-contextual (list item / sidebar feed / reader scroll) ---- */
         case 'j':
         case 'ArrowDown': {
           e.preventDefault();
-          const nextIdx = idx < 0 ? 0 : Math.min(items.length - 1, idx + 1);
-          const next = items[nextIdx];
-          if (next) c.onSelectItem(next.id);
+          const pane = c.getFocusedPane();
+          if (pane === 'sidebar') moveSidebar(1);
+          else if (pane === 'reader') c.onScrollReader(1, 'line');
+          else moveItem(1);
           break;
         }
         case 'k':
         case 'ArrowUp': {
           e.preventDefault();
-          const prevIdx = idx < 0 ? 0 : Math.max(0, idx - 1);
-          const prev = items[prevIdx];
-          if (prev) c.onSelectItem(prev.id);
+          const pane = c.getFocusedPane();
+          if (pane === 'sidebar') moveSidebar(-1);
+          else if (pane === 'reader') c.onScrollReader(-1, 'line');
+          else moveItem(-1);
           break;
         }
         case 'n': {
@@ -145,27 +178,29 @@ export function useKeyboardNav(config: KeyboardNavConfig): void {
           break;
         }
 
-        /* ---- Sidebar (feed/view) cycling ---- */
-        case 'J':
-        case ']': {
+        /* ---- Horizontal pane focus (sidebar <- list <- reader, no wrap) ---- */
+        case 'h':
+        case 'ArrowLeft': {
           e.preventDefault();
-          const targets = c.sidebarTargets;
-          if (targets.length === 0) break;
-          const cur = c.currentSidebarIndex;
-          const nextIdx = cur < 0 ? 0 : Math.min(targets.length - 1, cur + 1);
-          const t = targets[nextIdx];
-          if (t) c.onSelectSidebar(t);
+          c.onMovePaneFocus(-1);
           break;
         }
-        case 'K':
-        case '[': {
+        case 'l':
+        case 'ArrowRight': {
           e.preventDefault();
-          const targets = c.sidebarTargets;
-          if (targets.length === 0) break;
-          const cur = c.currentSidebarIndex;
-          const prevIdx = cur < 0 ? 0 : Math.max(0, cur - 1);
-          const t = targets[prevIdx];
-          if (t) c.onSelectSidebar(t);
+          c.onMovePaneFocus(1);
+          break;
+        }
+
+        /* ---- Reader full-page scroll, forward/back (always targets the reader) ---- */
+        case 'f': {
+          e.preventDefault();
+          c.onScrollReader(1, 'page');
+          break;
+        }
+        case 'b': {
+          e.preventDefault();
+          c.onScrollReader(-1, 'page');
           break;
         }
 
