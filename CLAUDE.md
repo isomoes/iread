@@ -14,7 +14,7 @@ iread — a local, single-user RSS/Atom reader (newsboat-inspired), TypeScript e
 - `pnpm typecheck` — **the primary correctness gate** (no test suite, no linter). Run after changes.
 - `pnpm build` / `pnpm start` — production: one Hono process serves the API + static bundle on 8787.
 
-Requires **Node ≥ 24** (built-in `node:sqlite`, no third-party driver); pnpm. Env: `PORT`, `DB_PATH` (see `.env.example`).
+Requires **Node ≥ 24** (built-in `node:sqlite`, no third-party driver); pnpm. Env: `PORT`, `DB_PATH` (see `config/.env.example`).
 
 ## Architecture
 

@@ -57,12 +57,12 @@ pnpm start
 
 Open http://localhost:8787
 
-`PORT` (default 8787) and `DB_PATH` (default `data/iread.db`) are read from the environment. See `.env.example`.
+`PORT` (default 8787) and `DB_PATH` (default `data/iread.db`) are read from the environment. See `config/.env.example`.
 
 ## Usage
 
 1. Start the app (dev or production) and open it in your browser.
-2. Add a feed by pasting its RSS or Atom URL into the add-feed form in the sidebar, or import an OPML file from the OPML menu. A `sample-feeds.opml` file is included for a quick start.
+2. Add a feed by pasting its RSS or Atom URL into the add-feed form in the sidebar, or import an OPML file from the OPML menu. A `config/sample-feeds.opml` file is included for a quick start.
 3. Select a feed or a smart view (All, Unread, Starred) in the sidebar.
 4. Navigate the article list with `j` and `k`, open an article with `Enter`, and read it in the right pane.
 5. Press `r` to refresh the current feed or `R` to refresh all feeds. Refresh fetches remote feeds; client polling only refreshes local data and never re-fetches remotely.
