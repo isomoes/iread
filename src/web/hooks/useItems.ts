@@ -4,7 +4,7 @@
 // Cached ['items', ...] data is a ListItemsResponse object (NOT a bare array): patch
 // old.items and adjust old.total / totals when membership changes.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   useMutation,
   useQuery,
@@ -446,22 +446,44 @@ function debouncedQ(): string {
 
 /* ---------- Active-list helpers for the controller ---------- */
 
-/** Items in the active list, memoized; used by keyboard nav + auto-select. */
-export function useActiveItems(view: ViewKey, q: string): ItemSummary[] {
-  const { data } = useItemsList(view, q);
-  return useMemo(() => data?.items ?? [], [data]);
-}
-
 /**
  * Keep selectedItemId valid against the active list (DESIGN Section 9): keep it if it
  * is still present in the filtered set; otherwise select the first row, or clear it if
  * the list is empty. Re-applies on every view/filter/membership change. Returns the id.
+ *
+ * `onViewEntrySelect` fires for the landing selection of a deliberate view entry
+ * (sidebar click, J/K cycle, initial load); the controller auto-marks it read on
+ * >= 768px since the reader pane displays it. It is armed only by a view change —
+ * never by a membership reshuffle (a refetch dropping read rows) or a search-filter
+ * change — so auto-refresh can never chain-mark items the user did not navigate to.
  */
-export function useSyncedSelection(view: ViewKey, q: string): number | null {
-  const items = useActiveItems(view, q);
+export function useSyncedSelection(
+  view: ViewKey,
+  q: string,
+  onViewEntrySelect?: (item: ItemSummary) => void,
+): number | null {
+  const { data } = useItemsList(view, q);
+  const items = useMemo(() => data?.items ?? [], [data]);
   const selectedItemId = useUiSelector((s) => s.selectedItemId);
 
+  // Armed on mount (the initial landing view) and on every view change; consumed by
+  // the first sync pass that runs against loaded data.
+  const viewEntryArmed = useRef(true);
+  const prevView = useRef(view);
+  if (prevView.current !== view) {
+    prevView.current = view;
+    viewEntryArmed.current = true;
+  }
+  const onViewEntrySelectRef = useRef(onViewEntrySelect);
+  onViewEntrySelectRef.current = onViewEntrySelect;
+
   useEffect(() => {
+    // Still loading: leave the selection alone and keep view-entry armed for the
+    // landing selection once data arrives.
+    if (data === undefined) return;
+    const isViewEntry = viewEntryArmed.current;
+    viewEntryArmed.current = false;
+
     // Still present: keep it (covers view switches that retain the item too).
     if (selectedItemId != null && items.some((it) => it.id === selectedItemId)) {
       return;
@@ -469,7 +491,8 @@ export function useSyncedSelection(view: ViewKey, q: string): number | null {
     // Dropped out of the set: select the first row, or clear.
     const first = items[0];
     uiStore.setSelectedItemId(first ? first.id : null);
-  }, [items, selectedItemId, view]);
+    if (first && isViewEntry) onViewEntrySelectRef.current?.(first);
+  }, [data, items, selectedItemId, view]);
 
   return selectedItemId;
 }

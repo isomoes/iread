@@ -5,9 +5,22 @@
 
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 
-const DB_PATH = process.env.DB_PATH ?? 'data/iread.db';
+// Default DB location: $DB_PATH if set (relative paths resolve against cwd).
+// Otherwise it depends on the mode: in development (NODE_ENV !== 'production')
+// the repo-local data/iread.db, so dev experiments never touch real data; in
+// production (`pnpm start`, the npx CLI) ~/.config/iread/iread.db, honoring
+// $XDG_CONFIG_HOME.
+function defaultDbPath(): string {
+  if (process.env.NODE_ENV !== 'production') return 'data/iread.db';
+  const xdg = process.env.XDG_CONFIG_HOME;
+  const configHome = xdg && xdg.trim() !== '' ? xdg : join(homedir(), '.config');
+  return join(configHome, 'iread', 'iread.db');
+}
+
+const DB_PATH = process.env.DB_PATH ?? defaultDbPath();
 
 // Resolve to an absolute path and ensure the containing directory exists
 // (DatabaseSync will not create intermediate directories on its own).

@@ -71,9 +71,6 @@ export function App() {
   const itemsQuery = useItemsList(activeView, debouncedQ);
   const itemQuery = useItem(selectedItemId);
 
-  // Keep selection valid against the live filtered list.
-  useSyncedSelection(activeView, debouncedQ);
-
   const items = useMemo(() => itemsQuery.data?.items ?? [], [itemsQuery.data]);
 
   /* ---- Mutations ---- */
@@ -86,6 +83,19 @@ export function App() {
   const markAllRead = useMarkAllRead();
   const autoMarkRead = useAutoMarkRead();
   const opml = useOpml();
+
+  /* Keep selection valid against the live filtered list. The landing selection of a
+     deliberate view entry is displayed by the reader pane on >=768px, so it counts as
+     seen and auto-marks read like nav does — this also covers a single-item list,
+     which j/k could never mark. Post-refetch reshuffles never mark (see
+     useSyncedSelection). */
+  const onViewEntrySelect = useCallback(
+    (item: ItemSummary) => {
+      if (!isMobile) autoMarkRead(item);
+    },
+    [isMobile, autoMarkRead],
+  );
+  useSyncedSelection(activeView, debouncedQ, onViewEntrySelect);
 
   /* ---- Toasts + aria-live ---- */
   const toasts = useToasts();

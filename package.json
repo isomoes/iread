@@ -1,8 +1,30 @@
 {
   "name": "iread",
   "version": "0.1.0",
-  "private": true,
+  "description": "Local, single-user RSS/Atom reader with a keyboard-first three-pane web UI, inspired by newsboat.",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isomoes/iread.git"
+  },
+  "homepage": "https://github.com/isomoes/iread#readme",
+  "bugs": "https://github.com/isomoes/iread/issues",
+  "keywords": [
+    "rss",
+    "atom",
+    "feed-reader",
+    "rss-reader",
+    "newsboat",
+    "self-hosted",
+    "sqlite"
+  ],
+  "bin": {
+    "iread": "dist/server/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=24"
   },
@@ -16,30 +38,31 @@
     "start": "NODE_ENV=production node --disable-warning=ExperimentalWarning dist/server/index.js",
     "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "preview": "vite preview",
+    "prepack": "pnpm build",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fontsource-variable/geist": "^5.2.9",
-    "@fontsource-variable/geist-mono": "^5.2.8",
     "@hono/node-server": "^2.0.4",
-    "@phosphor-icons/react": "^2.1.10",
-    "@tanstack/react-query": "^5.101.0",
     "fast-xml-parser": "^5.2.5",
     "hono": "^4.12.25",
-    "motion": "^12.40.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "rss-parser": "^3.13.0",
     "sanitize-html": "^2.17.4"
   },
   "devDependencies": {
+    "@fontsource-variable/geist": "^5.2.9",
+    "@fontsource-variable/geist-mono": "^5.2.8",
+    "@phosphor-icons/react": "^2.1.10",
     "@tailwindcss/vite": "^4.3.0",
+    "@tanstack/react-query": "^5.101.0",
     "@types/node": "^24.10.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/sanitize-html": "^2.16.1",
     "@vitejs/plugin-react": "^6.0.2",
     "concurrently": "^10.0.3",
+    "motion": "^12.40.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",

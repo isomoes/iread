@@ -2,7 +2,26 @@
 
 A concise, local, single-user RSS/Atom reader inspired by newsboat. Keyboard-first three-pane UI, TypeScript end to end. You add feeds by URL, refresh them on demand, and read server-sanitized article bodies in a calm, terminal-quiet reading surface with light, dark, and system themes.
 
-There is no auth, no multi-user, no cloud sync, and no background scheduler. Refresh is always user-initiated. All data lives in a local SQLite file at `data/iread.db`, which is the trust boundary.
+There is no auth, no multi-user, no cloud sync, and no background scheduler. Refresh is always user-initiated. All data lives in a single local SQLite file — by default `~/.config/iread/iread.db` — which is the trust boundary.
+
+## Quick start
+
+```sh
+npx iread
+```
+
+Then open http://localhost:8787. Requires Node.js 24 or newer (the server uses the built-in `node:sqlite` module). Data is stored in `~/.config/iread/iread.db` (`$XDG_CONFIG_HOME` is honored).
+
+```
+Usage: iread [options]
+
+Options:
+  -p, --port <port>  Port to listen on (default: $PORT or 8787)
+      --db <path>    SQLite database file
+                     (default: $DB_PATH or ~/.config/iread/iread.db)
+  -v, --version      Print the version and exit
+  -h, --help         Show this help and exit
+```
 
 ## Features
 
@@ -19,7 +38,7 @@ There is no auth, no multi-user, no cloud sync, and no background scheduler. Ref
 - OPML import (bulk add) and OPML export.
 - Light, dark, and system theme, persisted to localStorage.
 
-## Requirements
+## Requirements (development)
 
 - Node.js 24 or newer (the server uses the built-in `node:sqlite` module).
 - pnpm.
@@ -43,6 +62,8 @@ This runs two processes with `concurrently`:
 
 Vite proxies `/api` to `http://localhost:8787`, so the browser only ever talks to 5173 and there are no CORS concerns.
 
+In development (`NODE_ENV` is not `production`) the database defaults to `data/iread.db` inside the repo (gitignored), so dev experiments never touch your real `~/.config/iread` data.
+
 Open http://localhost:5173
 
 ## Build and start (production)
@@ -57,7 +78,11 @@ pnpm start
 
 Open http://localhost:8787
 
-`PORT` (default 8787) and `DB_PATH` (default `data/iread.db`) are read from the environment. See `config/.env.example`.
+`PORT` (default 8787) and `DB_PATH` (default `~/.config/iread/iread.db`) are read from the environment. See `config/.env.example`.
+
+## Publish to npm
+
+`pnpm publish` runs the full build via the `prepack` hook and ships only `dist/` (server, shared types, and the prebuilt web bundle); the `iread` bin points at `dist/server/cli.js`. The web framework dependencies are devDependencies, so `npx iread` installs only the small server runtime set.
 
 ## Usage
 
@@ -99,4 +124,4 @@ Keys are case-sensitive (Shift matters). Bindings fire only when you are not typ
 - `src/shared/` shared, type-only DTOs used by both server and web.
 - `src/server/` Hono API, SQLite access, feed fetch/parse/sanitize, OPML, SSRF guard.
 - `src/web/` React app: three-pane layout, hooks, components, styles.
-- `data/` runtime SQLite database (gitignored).
+- `data/` development SQLite database (gitignored); production data lives in `~/.config/iread/`.
