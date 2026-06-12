@@ -94,19 +94,21 @@ export function App() {
     pendingReadRef.current = item && !item.isRead ? item : null;
   }, []);
 
-  /* Keep selection valid against the live filtered list. The landing selection of a
-     deliberate view entry becomes the pending mark-on-leave item, and entering a view
-     is also leaving the previously displayed one, so the old pending item flushes.
-     Post-refetch reshuffles never mark or flush (see useSyncedSelection). */
-  const onViewEntrySelect = useCallback(
-    (item: ItemSummary | undefined) => {
+  /* Keep selection valid against the live filtered list. Any auto-selected row is
+     displayed by the reader pane on >=768px, so it becomes the pending mark-on-leave
+     item — including the row a refetch or search reshuffle lands on, or j/k could
+     never mark it. Only a deliberate view entry also flushes the item left behind;
+     reshuffles never mark or flush, they just rotate the pending item (see
+     useSyncedSelection). */
+  const onAutoSelect = useCallback(
+    (item: ItemSummary | undefined, isViewEntry: boolean) => {
       if (isMobile) return;
-      flushPendingRead();
+      if (isViewEntry) flushPendingRead();
       setPendingRead(item);
     },
     [isMobile, flushPendingRead, setPendingRead],
   );
-  useSyncedSelection(activeView, debouncedQ, onViewEntrySelect);
+  useSyncedSelection(activeView, debouncedQ, onAutoSelect);
 
   /* ---- Toasts + aria-live ---- */
   const toasts = useToasts();

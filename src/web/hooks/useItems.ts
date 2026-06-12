@@ -451,18 +451,21 @@ function debouncedQ(): string {
  * is still present in the filtered set; otherwise select the first row, or clear it if
  * the list is empty. Re-applies on every view/filter/membership change. Returns the id.
  *
- * `onViewEntrySelect` fires for the landing selection of a deliberate view entry
- * (sidebar click, J/K cycle, initial load) — with `undefined` when the view is empty —
- * so the controller can rotate its pending mark-on-leave item (flush the item left
- * behind, arm the landing one). It is armed only by a view change — never by a
- * membership reshuffle (a refetch dropping read rows) or a search-filter change — so
- * auto-refresh can never chain-mark items the user did not navigate to. An entry that
- * keeps the same selected item does not fire: the item is still displayed, not left.
+ * `onAutoSelect` fires whenever this hook moves the selection — with `undefined` when
+ * the list is empty — so the controller can rotate its pending mark-on-leave item to
+ * the newly displayed row (a refetch or search reshuffle lands on a row the user never
+ * navigated to; without this it would stay unmarked on the first switch away).
+ * `isViewEntry` is true only for the landing selection of a deliberate view entry
+ * (sidebar click, J/K cycle, initial load) — the one case that also flushes the item
+ * left behind. It is armed only by a view change — never by a membership reshuffle (a
+ * refetch dropping read rows) or a search-filter change — so auto-refresh can never
+ * chain-mark items the user did not navigate to. A pass that keeps the same selected
+ * item does not fire: the item is still displayed, not left.
  */
 export function useSyncedSelection(
   view: ViewKey,
   q: string,
-  onViewEntrySelect?: (item: ItemSummary | undefined) => void,
+  onAutoSelect?: (item: ItemSummary | undefined, isViewEntry: boolean) => void,
 ): number | null {
   const { data } = useItemsList(view, q);
   const items = useMemo(() => data?.items ?? [], [data]);
@@ -476,8 +479,8 @@ export function useSyncedSelection(
     prevView.current = view;
     viewEntryArmed.current = true;
   }
-  const onViewEntrySelectRef = useRef(onViewEntrySelect);
-  onViewEntrySelectRef.current = onViewEntrySelect;
+  const onAutoSelectRef = useRef(onAutoSelect);
+  onAutoSelectRef.current = onAutoSelect;
 
   useEffect(() => {
     // Still loading: leave the selection alone and keep view-entry armed for the
@@ -493,7 +496,7 @@ export function useSyncedSelection(
     // Dropped out of the set: select the first row, or clear.
     const first = items[0];
     uiStore.setSelectedItemId(first ? first.id : null);
-    if (isViewEntry) onViewEntrySelectRef.current?.(first);
+    onAutoSelectRef.current?.(first, isViewEntry);
   }, [data, items, selectedItemId, view]);
 
   return selectedItemId;
