@@ -336,7 +336,7 @@ Keys are case-sensitive (Shift matters): `j` is not `J`. All bindings run throug
 
 | Key | Action | Effect |
 |---|---|---|
-| `j` / ArrowDown | Down in focused pane | Pane-contextual: in the list, move item selection down 1 (roving focus + scroll into view); in the sidebar, move feed/view selection down 1 (focus follows, loads its items); in the reader, scroll down. Stops at the end (no wrap). |
+| `j` / ArrowDown | Down in focused pane | Pane-contextual: in the list, move item selection down 1 (roving focus + scroll into view); in the sidebar, move feed/view selection down 1 (focus follows, loads its items); in the reader, scroll down. Stops at the end (no wrap). On >= 768px the reader pane renders the new selection, so list navigation also auto-marks the item read (optimistic, idempotent). |
 | `k` / ArrowUp | Up in focused pane | As `j`, upward; the reader scrolls up. Stops at the start. |
 | `n` | Next unread | Jump to the next unread item below the current; wrap to first unread from top if none below; if none, polite live-region note and no-op. |
 | `g` | Top | Select first item; focus + scroll to top. (Single press, no `gg` chord in MVP.) |
@@ -435,7 +435,7 @@ Default 5 minutes, user-toggleable (optional 1/5/15 min), persisted. Polling ref
 
 CRITICAL: cached `['items', ...]` data is a `ListItemsResponse` object, NOT a bare array. Patch `old.items`, and adjust `old.total` when membership changes. The original `old.map(...)` over a bare array is wrong and would silently no-op.
 
-Toggle read (`m`, and auto-mark-on-open):
+Toggle read (`m`, and auto-mark-on-open/view):
 
 ```ts
 const toggleRead = useMutation({
@@ -451,14 +451,11 @@ const toggleRead = useMutation({
 
     const feedId = findFeedId(id, prevItems);
 
-    qc.setQueriesData<ListItemsResponse>({ queryKey: ['items'] }, (old, key) => {
+    qc.setQueriesData<ListItemsResponse>({ queryKey: ['items'] }, (old) => {
       if (!old) return old;
-      const viewKey = (key as any)[1]?.view as string | undefined;
-      // In the Unread view, marking read REMOVES the row (membership is live).
-      if (viewKey === 'unread' && isRead) {
-        const items = old.items.filter((it) => it.id !== id);
-        return { ...old, items, total: Math.max(0, old.total - (old.items.length - items.length)) };
-      }
+      // Patch in place in EVERY view, including Unread: a just-read row stays
+      // visible (dimmed) so selection and navigation remain stable while reading.
+      // Unread membership reconciles on the next refetch.
       return { ...old, items: old.items.map((it) => (it.id === id ? { ...it, isRead } : it)) };
     });
 
@@ -483,17 +480,21 @@ const toggleRead = useMutation({
     toast({ kind: 'error', message: 'Could not update. Reverted.' });
   },
 
-  onSettled: () => {
-    qc.invalidateQueries({ queryKey: ['items'] });
+  onSettled: (_d, _e, vars) => {
+    // Marking read invalidates ['items'] WITHOUT refetching (refetchType: 'none'),
+    // so a just-read row stays in the Unread view until the next natural refetch
+    // (view switch, refocus, auto-refresh). Marking unread refetches so the row
+    // reappears in the Unread view immediately (m toggle, Undo).
+    qc.invalidateQueries({ queryKey: ['items'], refetchType: vars.isRead ? 'none' : 'active' });
     qc.invalidateQueries({ queryKey: ['feeds'] });
   },
 });
 ```
 
-- When the Unread-view row is removed, the controller advances `selectedItemId` to the next remaining row (or clears it if empty). `n`/`j`/`k`/`g`/`G` operate over the live filtered list, so they never land on a now-read item.
+- A just-read row stays visible (dimmed) in the Unread view; selection never dangles, so `selectedItemId` is left untouched by `toggleRead`. `n` skips read rows; `j`/`k`/`g`/`G` walk the visible list including dimmed rows.
 - Star (`s`) follows the same shape against `{ isStarred }`. In the Starred view, unstarring removes the row and advances selection, and decrements `totals.starred`.
 - Mark-all-read (`A`) optimistically sets `isRead: true` across the active list (or empties it in the Unread view) and `unreadCount: 0` on the scoped feed; same snapshot/rollback over the two key families; calls `POST /api/items/mark-all-read` with `{ feedId? }` plus the current `view` (`all | unread | starred`, all accepted by the API). Offers an Undo toast that re-marks the snapshot.
-- Auto-mark-read on open reuses `toggleRead` with `isRead: true`, skipping the network call if the item is already read.
+- Auto-mark-read reuses `toggleRead` with `isRead: true`, skipping the network call if the item is already read. It fires on reader open (Enter/`o`/click), and on >= 768px also on deliberate list navigation (`j`/`k`/`n`/`g`/`G`) since the reader pane renders the selection. Incidental selection (row focus, e.g. clicking a row's star button) never auto-marks.
 - Because rows live under the partial key `['items']`, `setQueriesData`/`getQueriesData` patch every cached view at once (All, Unread, Starred, per-feed) so counts and membership stay consistent regardless of the active view.
 
 ---

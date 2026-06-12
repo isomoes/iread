@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
-import { AppShell, type ActivePane } from './components/AppShell';
+import { AppShell, useIsMobile, type ActivePane } from './components/AppShell';
 import { HelpOverlay } from './components/HelpOverlay';
 import { Toast, ToastViewport } from './components/Toast';
 import { SearchBox } from './components/SearchBox';
@@ -55,6 +55,7 @@ export function App() {
   const { selection, selectedItemId, searchText, helpOpen } = ui;
   const { theme, resolved, setTheme, cycleTheme } = useTheme();
   const reduceMotion = useReducedMotion();
+  const isMobile = useIsMobile();
 
   const debouncedQ = useDebouncedSearch();
   // Mirror the debounced query into the items module so optimistic onMutate can
@@ -80,10 +81,10 @@ export function App() {
   const deleteFeed = useDeleteFeed();
   const refreshFeed = useRefreshFeed();
   const refreshAll = useRefreshAll();
-  const toggleRead = useToggleRead(activeView);
+  const toggleRead = useToggleRead();
   const toggleStar = useToggleStar(activeView);
   const markAllRead = useMarkAllRead();
-  const autoMarkRead = useAutoMarkRead(activeView);
+  const autoMarkRead = useAutoMarkRead();
   const opml = useOpml();
 
   /* ---- Toasts + aria-live ---- */
@@ -126,6 +127,18 @@ export function App() {
   const selectItem = useCallback((id: number) => {
     uiStore.setSelectedItemId(id);
   }, []);
+
+  /* On >=768px the reader pane renders the selection, so navigating to an item IS
+     seeing it: deliberate nav (j/k/n/g/G) auto-marks it read. Incidental selection
+     (row focus, e.g. clicking a row's star button) goes through selectItem and never
+     marks; on mobile the reader is a separate routed pane, so only opening marks. */
+  const selectItemFromNav = useCallback(
+    (id: number) => {
+      uiStore.setSelectedItemId(id);
+      if (!isMobile) autoMarkRead(items.find((it) => it.id === id));
+    },
+    [isMobile, items, autoMarkRead],
+  );
 
   const openReader = useCallback(
     (id: number) => {
@@ -382,7 +395,7 @@ export function App() {
   useKeyboardNav({
     items,
     selectedItemId,
-    onSelectItem: selectItem,
+    onSelectItem: selectItemFromNav,
     onOpenReader: openReader,
     sidebarTargets,
     currentSidebarIndex,

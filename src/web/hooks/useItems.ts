@@ -136,9 +136,9 @@ function nextSelectionAfterRemoval(
   return next ? next.id : null;
 }
 
-/* ---------- toggleRead (`m`, and auto-mark-on-open) ---------- */
+/* ---------- toggleRead (`m`, and auto-mark-on-open/view) ---------- */
 
-export function useToggleRead(activeView: ViewKey) {
+export function useToggleRead() {
   const qc = useQueryClient();
   return useMutation<unknown, ApiError, { id: number; isRead: boolean }, MutationCtx>({
     mutationFn: ({ id, isRead }) => api.patchItem(id, { isRead }),
@@ -150,19 +150,6 @@ export function useToggleRead(activeView: ViewKey) {
       const prevItems = qc.getQueriesData<ListItemsResponse>({ queryKey: ['items'] });
       const prevFeeds = qc.getQueryData<ListFeedsResponse>(feedsKey);
       const feedId = findFeedId(id, prevItems);
-
-      // Advance selection if marking-read removes the currently-selected row from the
-      // ACTIVE unread view.
-      if (
-        isRead &&
-        activeView === 'unread' &&
-        uiStore.getState().selectedItemId === id
-      ) {
-        const activeData = qc.getQueryData<ListItemsResponse>(itemsKey(activeView, debouncedQ()));
-        if (activeData) {
-          uiStore.setSelectedItemId(nextSelectionAfterRemoval(activeData.items, id));
-        }
-      }
 
       patchItemReadInCaches(qc, id, isRead);
       patchFeedUnread(qc, feedId, isRead ? -1 : 1);
@@ -177,7 +164,14 @@ export function useToggleRead(activeView: ViewKey) {
     },
 
     onSettled: (_d, _e, vars) => {
-      qc.invalidateQueries({ queryKey: ['items'] });
+      // Marking read: invalidate WITHOUT refetching, so a just-read row stays
+      // visible (dimmed) in the Unread view until the next natural refetch (view
+      // switch, refocus, auto-refresh) instead of vanishing mid-read. Marking
+      // unread: refetch so the row reappears in the Unread view (m toggle, Undo).
+      qc.invalidateQueries({
+        queryKey: ['items'],
+        refetchType: vars.isRead ? 'none' : 'active',
+      });
       qc.invalidateQueries({ queryKey: feedsKey });
       qc.invalidateQueries({ queryKey: ['item', vars.id] });
     },
@@ -319,18 +313,13 @@ function forEachItemsCache(
 }
 
 function patchItemReadInCaches(qc: QueryClient, id: number, isRead: boolean): void {
-  forEachItemsCache(qc, (old, view) => {
-    // In the Unread view, marking read REMOVES the row (membership is live).
-    if (view === 'unread' && isRead) {
-      const items = old.items.filter((it) => it.id !== id);
-      const removed = old.items.length - items.length;
-      return { ...old, items, total: Math.max(0, old.total - removed) };
-    }
-    return {
-      ...old,
-      items: old.items.map((it) => (it.id === id ? { ...it, isRead } : it)),
-    };
-  });
+  // Patch in place in EVERY view, including Unread: a just-read row stays visible
+  // (dimmed) so selection and j/k navigation remain stable while reading. Unread
+  // membership reconciles on the next refetch.
+  forEachItemsCache(qc, (old) => ({
+    ...old,
+    items: old.items.map((it) => (it.id === id ? { ...it, isRead } : it)),
+  }));
 }
 
 function patchItemStarInCaches(qc: QueryClient, id: number, isStarred: boolean): void {
@@ -486,11 +475,12 @@ export function useSyncedSelection(view: ViewKey, q: string): number | null {
 }
 
 /**
- * Auto-mark-read on open: reuse the read patch, skipping the network if already read.
- * Returns a function the controller calls when an item is opened in the reader.
+ * Auto-mark-read on open/view: reuse the read patch, skipping the network if already
+ * read. The controller calls this when an item is opened in the reader, and on >=768px
+ * when list navigation displays it in the reader pane.
  */
-export function useAutoMarkRead(activeView: ViewKey): (item: ItemSummary | undefined) => void {
-  const toggleRead = useToggleRead(activeView);
+export function useAutoMarkRead(): (item: ItemSummary | undefined) => void {
+  const toggleRead = useToggleRead();
   return (item) => {
     if (item && !item.isRead) {
       toggleRead.mutate({ id: item.id, isRead: true });

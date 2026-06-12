@@ -34,7 +34,7 @@ export interface AppShellProps {
 
 const MOBILE_QUERY = '(max-width: 767px)';
 
-function useIsMobile(): boolean {
+export function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = useState(() => {
     try {
       return matchMedia(MOBILE_QUERY).matches;
