@@ -84,16 +84,27 @@ export function App() {
   const autoMarkRead = useAutoMarkRead();
   const opml = useOpml();
 
+  const pendingReadRef = useRef<ItemSummary | null>(null);
+  const flushPendingRead = useCallback(() => {
+    const pending = pendingReadRef.current;
+    pendingReadRef.current = null;
+    if (pending) autoMarkRead(pending);
+  }, [autoMarkRead]);
+  const setPendingRead = useCallback((item: ItemSummary | undefined) => {
+    pendingReadRef.current = item && !item.isRead ? item : null;
+  }, []);
+
   /* Keep selection valid against the live filtered list. The landing selection of a
-     deliberate view entry is displayed by the reader pane on >=768px, so it counts as
-     seen and auto-marks read like nav does — this also covers a single-item list,
-     which j/k could never mark. Post-refetch reshuffles never mark (see
-     useSyncedSelection). */
+     deliberate view entry becomes the pending mark-on-leave item, and entering a view
+     is also leaving the previously displayed one, so the old pending item flushes.
+     Post-refetch reshuffles never mark or flush (see useSyncedSelection). */
   const onViewEntrySelect = useCallback(
-    (item: ItemSummary) => {
-      if (!isMobile) autoMarkRead(item);
+    (item: ItemSummary | undefined) => {
+      if (isMobile) return;
+      flushPendingRead();
+      setPendingRead(item);
     },
-    [isMobile, autoMarkRead],
+    [isMobile, flushPendingRead, setPendingRead],
   );
   useSyncedSelection(activeView, debouncedQ, onViewEntrySelect);
 
@@ -138,26 +149,32 @@ export function App() {
     uiStore.setSelectedItemId(id);
   }, []);
 
-  /* On >=768px the reader pane renders the selection, so navigating to an item IS
-     seeing it: deliberate nav (j/k/n/g/G) auto-marks it read. Incidental selection
-     (row focus, e.g. clicking a row's star button) goes through selectItem and never
-     marks; on mobile the reader is a separate routed pane, so only opening marks. */
+  /* On >=768px the reader pane renders the selection, so deliberate nav (j/k/n/g/G)
+     displays the item — but only switching away marks it: the item left behind
+     flushes, the arrived item becomes pending. Incidental selection (row focus, e.g.
+     clicking a row's star button) goes through selectItem and never marks; on mobile
+     the reader is a separate routed pane, so only opening marks. */
   const selectItemFromNav = useCallback(
     (id: number) => {
       uiStore.setSelectedItemId(id);
-      if (!isMobile) autoMarkRead(items.find((it) => it.id === id));
+      if (isMobile) return;
+      if (pendingReadRef.current?.id === id) return;
+      flushPendingRead();
+      setPendingRead(items.find((it) => it.id === id));
     },
-    [isMobile, items, autoMarkRead],
+    [isMobile, items, flushPendingRead, setPendingRead],
   );
 
   const openReader = useCallback(
     (id: number) => {
       uiStore.setSelectedItemId(id);
+      if (pendingReadRef.current?.id === id) pendingReadRef.current = null;
+      else flushPendingRead();
       const item = items.find((it) => it.id === id);
       autoMarkRead(item); // idempotent; skips if already read
       goToPane('reader');
     },
-    [items, autoMarkRead, goToPane],
+    [items, autoMarkRead, flushPendingRead, goToPane],
   );
 
   /* ---- Ordered sidebar targets for J/K cycling ---- */
@@ -185,6 +202,7 @@ export function App() {
   /* ---- Item-state actions ---- */
   const onToggleRead = useCallback(
     (id: number) => {
+      if (pendingReadRef.current?.id === id) pendingReadRef.current = null;
       const item = items.find((it) => it.id === id);
       const next = !(item?.isRead ?? false);
       toggleRead.mutate({ id, isRead: next });
@@ -204,6 +222,7 @@ export function App() {
   );
 
   const onMarkAllRead = useCallback(() => {
+    pendingReadRef.current = null;
     const snapshotIds = items.filter((it) => !it.isRead).map((it) => it.id);
     const vars =
       selection.kind === 'feed'
@@ -249,6 +268,7 @@ export function App() {
 
   const onDeleteFeed = useCallback(
     (id: number) => {
+      if (pendingReadRef.current?.feedId === id) pendingReadRef.current = null;
       deleteFeed.mutate(id);
     },
     [deleteFeed],

@@ -16,7 +16,8 @@ export interface KeyboardNavConfig {
   items: ItemSummary[];
   selectedItemId: number | null;
   /** Move selection to an item id (roving focus + scroll handled by the list).
-      On >=768px the reader pane shows the selection, so this also auto-marks read. */
+      On >=768px the reader pane shows the selection; the item navigated AWAY from
+      is auto-marked read (mark-on-leave). */
   onSelectItem: (id: number) => void;
   /** Open the selected item in the reader (Enter / o); also auto-marks read. */
   onOpenReader: (id: number) => void;

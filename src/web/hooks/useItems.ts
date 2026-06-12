@@ -452,15 +452,17 @@ function debouncedQ(): string {
  * the list is empty. Re-applies on every view/filter/membership change. Returns the id.
  *
  * `onViewEntrySelect` fires for the landing selection of a deliberate view entry
- * (sidebar click, J/K cycle, initial load); the controller auto-marks it read on
- * >= 768px since the reader pane displays it. It is armed only by a view change —
- * never by a membership reshuffle (a refetch dropping read rows) or a search-filter
- * change — so auto-refresh can never chain-mark items the user did not navigate to.
+ * (sidebar click, J/K cycle, initial load) — with `undefined` when the view is empty —
+ * so the controller can rotate its pending mark-on-leave item (flush the item left
+ * behind, arm the landing one). It is armed only by a view change — never by a
+ * membership reshuffle (a refetch dropping read rows) or a search-filter change — so
+ * auto-refresh can never chain-mark items the user did not navigate to. An entry that
+ * keeps the same selected item does not fire: the item is still displayed, not left.
  */
 export function useSyncedSelection(
   view: ViewKey,
   q: string,
-  onViewEntrySelect?: (item: ItemSummary) => void,
+  onViewEntrySelect?: (item: ItemSummary | undefined) => void,
 ): number | null {
   const { data } = useItemsList(view, q);
   const items = useMemo(() => data?.items ?? [], [data]);
@@ -491,16 +493,17 @@ export function useSyncedSelection(
     // Dropped out of the set: select the first row, or clear.
     const first = items[0];
     uiStore.setSelectedItemId(first ? first.id : null);
-    if (first && isViewEntry) onViewEntrySelectRef.current?.(first);
+    if (isViewEntry) onViewEntrySelectRef.current?.(first);
   }, [data, items, selectedItemId, view]);
 
   return selectedItemId;
 }
 
 /**
- * Auto-mark-read on open/view: reuse the read patch, skipping the network if already
- * read. The controller calls this when an item is opened in the reader, and on >=768px
- * when list navigation displays it in the reader pane.
+ * Auto-mark-read: reuse the read patch, skipping the network if already read. The
+ * controller calls this when an item is opened in the reader, and on >=768px when a
+ * displayed item is switched away from (mark-on-leave; see the pending-read logic
+ * in App).
  */
 export function useAutoMarkRead(): (item: ItemSummary | undefined) => void {
   const toggleRead = useToggleRead();

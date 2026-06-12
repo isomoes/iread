@@ -31,7 +31,7 @@ Options:
 - Smart views: All, Unread, Starred, applied across the article list, with per-feed selection.
 - Article list with read/unread indicator, source feed, relative time, and star indicator.
 - Reader pane with title, author, date, server-sanitized HTML body, and open-original link.
-- Mark read/unread, auto-mark-read on open, mark-all-read for the current feed or view.
+- Mark read/unread, auto-mark-read on open (and, on desktop, when you move on from a viewed item), mark-all-read for the current feed or view.
 - Star and unstar.
 - Live case-insensitive search over title plus summary in the current view.
 - Full keyboard navigation as the primary interaction model.

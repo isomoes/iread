@@ -64,6 +64,7 @@ Three TypeScript projects under `src/`, each with its own tsconfig:
 
 ## Conventions
 
+- **No code comments unless the user explicitly asks for them.** Keep existing comments (including PLAN/DESIGN references) intact, but never add new ones on your own.
 - Server is ESM with `NodeNext` + `verbatimModuleSyntax`: relative imports use explicit `.js` extensions, type-only imports use `import type`. The web project uses the Bundler resolver.
 - `noUncheckedIndexedAccess` is on in both projects — index access yields `T | undefined`.
 - All SQL is parameterized; dynamic `WHERE`/`SET` clauses are built from fixed fragments with bound params; `limit`/`offset` are clamped before binding.
