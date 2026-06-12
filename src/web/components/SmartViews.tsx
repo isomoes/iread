@@ -1,4 +1,4 @@
-// SmartViews: All / Unread / Starred selector with mono counts pulled from
+// SmartViews: Unread / All / Starred selector with mono counts pulled from
 // `totals`. Active view gets the accent fill. DESIGN Section 4 + 6.
 import type { SmartView, ViewTotals } from '../../shared/types';
 
@@ -9,8 +9,8 @@ interface SmartViewsProps {
 }
 
 const VIEWS: { key: SmartView; label: string }[] = [
-  { key: 'all', label: 'All' },
   { key: 'unread', label: 'Unread' },
+  { key: 'all', label: 'All' },
   { key: 'starred', label: 'Starred' },
 ];
 

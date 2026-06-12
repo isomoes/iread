@@ -60,7 +60,8 @@ function readAutoRefresh(): AutoRefresh {
 }
 
 let state: UiState = {
-  selection: { kind: 'all' },
+  // Default landing view: Unread (the first smart view in the sidebar).
+  selection: { kind: 'unread' },
   selectedItemId: null,
   searchText: '',
   theme: readTheme(),

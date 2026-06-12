@@ -71,10 +71,10 @@ export function useDeleteFeed() {
         };
         qc.setQueryData<ListFeedsResponse>(feedsKey, next);
       }
-      // If the deleted feed was the current selection, fall back to All.
+      // If the deleted feed was the current selection, fall back to the default view.
       const sel = uiStore.getState().selection;
       if (sel.kind === 'feed' && sel.feedId === id) {
-        uiStore.setSelection({ kind: 'all' });
+        uiStore.setSelection({ kind: 'unread' });
       }
       return { prev };
     },

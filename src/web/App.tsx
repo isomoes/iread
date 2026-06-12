@@ -42,8 +42,8 @@ import type { ItemSummary } from '../shared/types';
 // The controller builds these objects; the panes render against them.
 
 const SMART_VIEW_TARGETS: SidebarTarget[] = [
-  { kind: 'all' },
   { kind: 'unread' },
+  { kind: 'all' },
   { kind: 'starred' },
 ];
 

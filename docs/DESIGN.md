@@ -245,7 +245,7 @@ Density 6 (compact but breathing):
 |---|---|---|
 | `AppShell` | Three-pane CSS Grid, theme class, global keyboard handler, mobile pane routing. | `theme`, `activePane: 'sidebar' \| 'list' \| 'reader'` |
 | `Sidebar` | Hosts smart views, feed list, add-feed form, refresh-all, OPML menu, theme toggle. ARIA `complementary`/`nav`. | `feeds: FeedWithCounts[]`, `totals: ViewTotals`, `selection`, `onSelectView`, `onSelectFeed`, `isRefreshingAll` |
-| `SmartViews` | All / Unread / Starred selector with mono counts from `totals`. | `totals`, `active`, `onChange` |
+| `SmartViews` | Unread / All / Starred selector (in that order) with mono counts from `totals`. | `totals`, `active`, `onChange` |
 | `AddFeedForm` | URL input + submit; inline validation + error. | `onSubmit`, `pending`, `error` |
 | `FeedRow` | One feed: glyph, title, mono `unreadCount`, fetch-error badge if `fetchError`. | `feed: FeedWithCounts`, `selected`, `onSelect`, `onDelete` |
 | `RefreshAllButton` | `R` action; icon spins (transform only) while pending. | `pending`, `onClick` |
@@ -386,7 +386,7 @@ Field names below are exactly those in the API contract (PLAN.md Section 7 and 8
 
 ### Local UI state (NOT react-query) — `useUiStore`
 
-- `selection`: `{ kind: 'all' | 'unread' | 'starred' } | { kind: 'feed'; feedId: number }`
+- `selection`: `{ kind: 'all' | 'unread' | 'starred' } | { kind: 'feed'; feedId: number }` (initial: `{ kind: 'unread' }`; deleting the selected feed also falls back to Unread)
 - `selectedItemId: number | null`
 - `searchText: string` (raw input; debounced 250ms before entering a query key)
 - `theme: 'light' | 'dark' | 'system'` (init from localStorage then `prefers-color-scheme`; persisted)
