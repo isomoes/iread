@@ -13,7 +13,7 @@ iread — a local, single-user RSS/Atom reader (newsboat-inspired), TypeScript e
 - `pnpm dev` — API server (port 8787) + Vite dev server (port 5173, proxies `/api`). Open http://localhost:5173.
 - `pnpm typecheck` — **the primary correctness gate** (no test suite, no linter). Run after changes.
 - `pnpm build` / `pnpm start` — production: one Hono process serves the API + static bundle on 8787.
-- `pnpm publish` — npm package; `prepack` runs the build, `files` ships only `dist/`, and the `iread` bin (`src/server/cli.ts` → `dist/server/cli.js`) is what `npx iread` runs (flags → `PORT`/`DB_PATH` env, defaults `NODE_ENV=production`). Web/React deps are devDependencies — keep server runtime imports limited to the five packages under `dependencies`.
+- `pnpm publish` — npm package; `prepack` runs the build, `files` ships only `dist/`, and the `iread` bin (`src/server/cli.ts` → `dist/server/cli.js`) is what `npx @isomoes/iread` runs (flags → `PORT`/`DB_PATH` env, defaults `NODE_ENV=production`). Web/React deps are devDependencies — keep server runtime imports limited to the five packages under `dependencies`.
 
 Requires **Node ≥ 24** (built-in `node:sqlite`, no third-party driver); pnpm. Env: `PORT`, `DB_PATH` (see `config/.env.example`).
 

@@ -7,7 +7,7 @@ There is no auth, no multi-user, no cloud sync, and no background scheduler. Ref
 ## Quick start
 
 ```sh
-npx iread
+npx @isomoes/iread
 ```
 
 Then open http://localhost:8787. Requires Node.js 24 or newer (the server uses the built-in `node:sqlite` module). Data is stored in `~/.config/iread/iread.db` (`$XDG_CONFIG_HOME` is honored).
@@ -82,7 +82,7 @@ Open http://localhost:8787
 
 ## Publish to npm
 
-`pnpm publish` runs the full build via the `prepack` hook and ships only `dist/` (server, shared types, and the prebuilt web bundle); the `iread` bin points at `dist/server/cli.js`. The web framework dependencies are devDependencies, so `npx iread` installs only the small server runtime set.
+`pnpm publish` runs the full build via the `prepack` hook and ships only `dist/` (server, shared types, and the prebuilt web bundle); the `iread` bin points at `dist/server/cli.js`. The web framework dependencies are devDependencies, so `npx @isomoes/iread` installs only the small server runtime set.
 
 ## Usage
 

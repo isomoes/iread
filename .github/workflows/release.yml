@@ -1,0 +1,73 @@
+# Cut a GitHub Release from CHANGELOG.md — but only after the npm publish has
+# actually succeeded.
+#
+# Chained off publish.yml via `workflow_run` (NOT the tag) so a failed publish
+# never leaves behind a GitHub Release for a version that isn't on npm. The tag
+# push triggers publish.yml; when that run completes successfully this fires.
+#
+# `workflow_run` always uses the workflow definition from the default branch, so
+# this file must be on the default branch to take effect (it is). The tag name
+# and commit come from the upstream run via `github.event.workflow_run.*`.
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["Publish"]
+    types:
+      - completed
+
+permissions:
+  contents: write # create GitHub Releases
+
+jobs:
+  release:
+    # Only when the publish succeeded, and only for tag pushes (head_branch is
+    # the tag name, e.g. v0.1.2, for a tag-triggered upstream run).
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # Pull the block under `## <version>` (up to the next `## `) out of the
+      # changelog. Falls back to GitHub's auto-generated notes if the section —
+      # or the CHANGELOG.md file itself — is absent.
+      - name: Extract changelog notes
+        id: notes
+        env:
+          TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          VERSION="${TAG#v}"
+          NOTES="$RUNNER_TEMP/notes.md"
+          : > "$NOTES"
+          if [ -f CHANGELOG.md ]; then
+            awk -v hdr="## ${VERSION}" '
+              $0 == hdr { found = 1; next }
+              found && /^## / { exit }
+              found { print }
+            ' CHANGELOG.md > "$NOTES"
+            sed -i -e '/./,$!d' "$NOTES" # strip leading blank lines
+          fi
+          if grep -q '[^[:space:]]' "$NOTES"; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No '## ${VERSION}' section in CHANGELOG.md — using auto-generated notes."
+          fi
+          echo "file=$NOTES" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.workflow_run.head_branch }}
+          FOUND: ${{ steps.notes.outputs.found }}
+          FILE: ${{ steps.notes.outputs.file }}
+        run: |
+          if [ "$FOUND" = "true" ]; then
+            gh release create "$TAG" --title "$TAG" --notes-file "$FILE" --verify-tag
+          else
+            gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
+          fi

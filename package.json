@@ -1,5 +1,5 @@
 {
-  "name": "iread",
+  "name": "@isomoes/iread",
   "version": "0.1.0",
   "description": "Local, single-user RSS/Atom reader with a keyboard-first three-pane web UI, inspired by newsboat.",
   "type": "module",
@@ -25,6 +25,10 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
   "engines": {
     "node": ">=24"
   },
