@@ -19,6 +19,9 @@ Options:
   -p, --port <port>  Port to listen on (default: $PORT or 8787)
       --db <path>    SQLite database file
                      (default: $DB_PATH or ~/.config/iread/iread.db)
+      --opml <path>  OPML file auto-saved on every subscription change
+                     (default: $OPML_PATH or feeds.opml next to the database;
+                     pass "" to disable)
   -v, --version      Print the version and exit
   -h, --help         Show this help and exit
 ```
@@ -35,7 +38,7 @@ Options:
 - Star and unstar.
 - Live case-insensitive search over title plus summary in the current view.
 - Full keyboard navigation as the primary interaction model.
-- OPML import (bulk add) and OPML export.
+- OPML import (bulk add) and OPML export, plus an always-current `feeds.opml` auto-saved next to the database on every change for quick sharing and backup. The auto-saved file is a one-way snapshot of the database (overwritten on every change and at startup), so use it for backup and sharing — to bring feeds in, use OPML import.
 - Light, dark, and system theme, persisted to localStorage.
 
 ## Requirements (development)
@@ -78,7 +81,7 @@ pnpm start
 
 Open http://localhost:8787
 
-`PORT` (default 8787) and `DB_PATH` (default `~/.config/iread/iread.db`) are read from the environment. See `config/.env.example`.
+`PORT` (default 8787), `DB_PATH` (default `~/.config/iread/iread.db`), and `OPML_PATH` (default `feeds.opml` next to the database; set empty to disable the auto-saved mirror) are read from the environment. See `config/.env.example`.
 
 ## Publish to npm
 

@@ -646,6 +646,8 @@ POST `/api/opml` — import. Review fix #11: parse safely.
 - Behavior: collect all `outline` elements with `xmlUrl`; dedup the URLs within the file first (so two identical `xmlUrl`s do not collide on the UNIQUE index mid-transaction); run each through the SSRF guard; insert feeds not already present (dedup on `feedUrl`); skip duplicates. Initial fetch of each new feed is best-effort (failures recorded in `fetchError`; import still succeeds). Sequential or small-concurrency.
 - 200: `ImportOpmlResponse` = `{ added, skipped, failed, feeds: FeedWithCounts[] }`. 400 if OPML cannot be parsed or exceeds the size cap.
 
+On-disk mirror (`opml-sync.ts`). The subscription set is also mirrored to a plain `feeds.opml` file on disk so it is always ready to share or back up without hitting the API. The mirror is written by `syncOpmlMirror()` (which feeds `listFeedsForExport()` through the same `exportOpml`) after every operation that changes the feed set or its metadata — `addFeed`, `deleteFeed`, `importFeeds`, `refreshFeed`, `refreshAll` — and once at startup. It is a one-way snapshot (DB → file); the DB stays the source of truth, and importing is still explicit via `POST /api/opml`. The write is atomic (write to `<path>.tmp`, then rename) and best-effort: any failure is logged and swallowed so it never fails the feed operation. The path is `$OPML_PATH` if set (an empty value disables the mirror), otherwise `feeds.opml` next to the database file (`dbPath`); the containing directory is created if needed.
+
 ### Static / SPA (prod)
 
 Non-`/api` GET routes serve `dist/web` static assets with SPA fallback to `index.html`. Details in Section 8.

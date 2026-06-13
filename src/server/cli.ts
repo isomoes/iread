@@ -33,6 +33,9 @@ Options:
   -p, --port <port>  Port to listen on (default: $PORT or 8787)
       --db <path>    SQLite database file
                      (default: $DB_PATH or ~/.config/iread/iread.db)
+      --opml <path>  OPML file auto-saved on every subscription change
+                     (default: $OPML_PATH or feeds.opml next to the database;
+                     pass "" to disable)
   -v, --version      Print the version and exit
   -h, --help         Show this help and exit
 `;
@@ -77,6 +80,12 @@ for (let i = 0; i < args.length; i++) {
       const value = args[++i];
       if (!value) fail('--db requires a file path');
       process.env.DB_PATH = value;
+      break;
+    }
+    case '--opml': {
+      const value = args[++i];
+      if (value === undefined) fail('--opml requires a file path (pass "" to disable)');
+      process.env.OPML_PATH = value;
       break;
     }
     default:

@@ -34,6 +34,7 @@ import {
 import { fetchFeed } from './fetch-feed.js';
 import { assertSafeFeedUrl } from './ssrf.js';
 import { sanitizeArticleHtml, toPlainText } from './sanitize.js';
+import { writeOpmlSnapshot } from './opml-sync.js';
 
 const SUMMARY_MAX = 280;
 const LIMIT_DEFAULT = 50;
@@ -426,6 +427,7 @@ export async function refreshFeed(id: number): Promise<{ feed: FeedWithCounts; n
   const row = getFeedRow(id);
   if (!row) throw new ServiceError('NOT_FOUND', 'Feed not found.');
   const outcome = await refreshFeedRow(row);
+  syncOpmlMirror();
   return { feed: outcome.feed, newItems: outcome.newItems };
 }
 
@@ -457,6 +459,7 @@ export async function refreshAll(): Promise<{
     }
   }
 
+  syncOpmlMirror();
   return { feeds: listFeeds().feeds, refreshed, failed, newItems };
 }
 
@@ -525,6 +528,7 @@ export async function addFeed(url: string): Promise<FeedWithCounts> {
 
   const feed = getFeedWithCounts(feedId);
   if (!feed) throw new ServiceError('NOT_FOUND', 'Feed disappeared after insert.');
+  syncOpmlMirror();
   return feed;
 }
 
@@ -535,6 +539,7 @@ export async function addFeed(url: string): Promise<FeedWithCounts> {
 export function deleteFeed(id: number): void {
   const res = run(`DELETE FROM feeds WHERE id = ?`, id);
   if (res.changes === 0) throw new ServiceError('NOT_FOUND', 'Feed not found.');
+  syncOpmlMirror();
 }
 
 // ---------------------------------------------------------------------------
@@ -740,6 +745,7 @@ export async function importFeeds(urls: string[]): Promise<{
     }
   }
 
+  syncOpmlMirror();
   return { added, skipped, failed, feeds: listFeeds().feeds };
 }
 
@@ -747,4 +753,8 @@ export async function importFeeds(urls: string[]): Promise<{
 export function listFeedsForExport(): Feed[] {
   const rows = queryAll<FeedRow>(`SELECT * FROM feeds ORDER BY title COLLATE NOCASE ASC, id ASC`);
   return rows.map(mapFeed);
+}
+
+export function syncOpmlMirror(): void {
+  writeOpmlSnapshot(listFeedsForExport());
 }

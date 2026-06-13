@@ -24,7 +24,7 @@ const DB_PATH = process.env.DB_PATH ?? defaultDbPath();
 
 // Resolve to an absolute path and ensure the containing directory exists
 // (DatabaseSync will not create intermediate directories on its own).
-const dbPath = resolve(process.cwd(), DB_PATH);
+export const dbPath = resolve(process.cwd(), DB_PATH);
 mkdirSync(dirname(dbPath), { recursive: true });
 
 export const db = new DatabaseSync(dbPath);

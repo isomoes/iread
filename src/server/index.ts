@@ -21,6 +21,9 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 // Importing ./db has the side effect of opening the DB and running migrations.
 // Do it explicitly so startup failures surface immediately.
 import './db.js';
+import { syncOpmlMirror } from './feed-service.js';
+
+syncOpmlMirror();
 
 const app = new Hono();
 
