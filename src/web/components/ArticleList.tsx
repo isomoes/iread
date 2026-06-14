@@ -114,8 +114,9 @@ export function ArticleList({
       id="articles"
       role="listbox"
       aria-label="Articles"
+      tabIndex={-1}
       aria-busy={state.status === 'loading' ? true : undefined}
-      className="h-full overflow-y-auto bg-surface"
+      className="h-full overflow-y-auto bg-surface outline-none"
     >
       {body}
     </div>

@@ -165,6 +165,14 @@ export function App() {
   const readerRef = useRef<HTMLElement>(null);
 
   /* ---- Selection / sidebar actions ---- */
+  const enterListFromSidebar = useCallback(() => {
+    if (isMobile) return;
+    const active = document.activeElement as HTMLElement | null;
+    const sidebarEl = document.querySelector('aside[aria-label="Feeds"]');
+    if (!active || !sidebarEl?.contains(active)) return;
+    document.getElementById('articles')?.focus({ preventScroll: true });
+  }, [isMobile]);
+
   const selectView = useCallback(
     (kind: 'all' | 'unread' | 'starred') => {
       uiStore.setSelection({ kind });
@@ -179,6 +187,22 @@ export function App() {
       goToPane('list');
     },
     [goToPane],
+  );
+
+  const onClickSelectView = useCallback(
+    (kind: 'all' | 'unread' | 'starred') => {
+      selectView(kind);
+      enterListFromSidebar();
+    },
+    [selectView, enterListFromSidebar],
+  );
+
+  const onClickSelectFeed = useCallback(
+    (feedId: number) => {
+      selectFeed(feedId);
+      enterListFromSidebar();
+    },
+    [selectFeed, enterListFromSidebar],
   );
 
   const selectItem = useCallback((id: number) => {
@@ -605,8 +629,8 @@ export function App() {
           selection,
           state: sidebarState,
           isRefreshingAll: refreshAll.isPending,
-          onSelectView: selectView,
-          onSelectFeed: selectFeed,
+          onSelectView: onClickSelectView,
+          onSelectFeed: onClickSelectFeed,
           onDeleteFeed,
           onAddFeed: (url: string) => addFeed.mutate(url),
           addPending: addFeed.isPending,
