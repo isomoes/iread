@@ -5,7 +5,7 @@ All notable changes to this project are recorded here.
 Format per entry: `<type>: <commit message> (@who) <hash>`
 Entries are grouped by version, newest first.
 
-## 0.2.0
+## 0.2.1
 
 - fix(web): move focus to list on sidebar click so j/k selects items (@isomoes) ed54d60
 - feat(web): style reader article content (tables, lists, code, headings) (@isomoes) 4b59f11
