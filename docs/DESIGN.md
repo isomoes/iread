@@ -252,8 +252,8 @@ Density 6 (compact but breathing):
 | `OpmlMenu` | Import (file picker) / Export (download link). | `onImport`, `pending` |
 | `ThemeToggle` | Cycles light / dark / system; persists. | `theme`, `onChange` |
 | `ArticleList` | Middle pane: rows for the current view/feed. `role="listbox"` labeled Articles. | `items: ItemSummary[]`, `total`, `selectedId`, `onSelect`, `state` |
-| `ArticleRow` | Title, source `feedTitle`, published date `YYYYMMDD` (mono), `UnreadDot`, star toggle. `role="option"`. | `item: ItemSummary`, `selected`, `onSelect`, `onToggleStar` |
-| `ReaderPane` | Right pane: sanitized `contentHtml`, header meta, open-original, read/star toolbar. ARIA `main`/`article`. | `item: Item \| undefined`, `onToggleRead`, `onToggleStar`, `state` |
+| `ArticleRow` | Title, source `feedTitle`, published date `YYMMDD` (mono), `UnreadDot`, star toggle. `role="option"`. | `item: ItemSummary`, `selected`, `onSelect`, `onToggleStar` |
+| `ReaderPane` | Right pane: sanitized `contentHtml`, header meta (full date, e.g. `Sat, 13 Jun 2026 08:50:03 +0800`), open-original, read/star toolbar. ARIA `main`/`article`. | `item: Item \| undefined`, `onToggleRead`, `onToggleStar`, `state` |
 | `Toolbar` | Action bar in reader (mark read, star, open original). | `item`, handlers |
 | `SearchBox` | `/`-focusable filter over current list; `role="search"`. | `value`, `onChange`, `onClear` |
 | `HelpOverlay` | `?` modal of keybindings (mono kbd chips). ARIA `dialog`, focus-trapped. | `open`, `onClose` |
@@ -265,7 +265,7 @@ Density 6 (compact but breathing):
 | `ErrorState` | Inline per-pane error with retry. | `message`, `onRetry` |
 | `UnreadDot` | The one allowed semantic dot. | `active` |
 | `Badge` | Mono count / error pill. | `tone: 'accent' \| 'danger' \| 'muted'`, `children` |
-| `PublishedDate` | Renders `publishedAt` as a compact `YYYYMMDD` date inside `<time dateTime title>`. | `value: number` |
+| `PublishedDate` | Renders `publishedAt` as a compact `YYMMDD` date inside `<time dateTime title>` (article list only; the reader shows the full date). | `value: number` |
 
 Icons (Phosphor, `weight="regular"` only): `Plus`, `ArrowsClockwise`, `Trash`, `Star`, `Circle` (unread), `MagnifyingGlass`, `SunDim`, `MoonStars`, `Desktop`, `Question`, `ArrowLeft`, `ArrowSquareOut`, `Warning`, `TrayArrowUp`/`TrayArrowDown` (OPML). To avoid bundling all weights, import per-icon. No hand-rolled SVG paths.
 
@@ -376,7 +376,7 @@ function shouldHandle(e: KeyboardEvent): boolean {
 }
 ```
 
-Accessibility: the article list is a single `role="listbox"` with roving tabindex (one row `tabIndex={0}`, others `-1`, `aria-selected`); read/unread is conveyed in the accessible name, never by color alone. Feed rows compose counts into words: `aria-label={`${feed.title}, ${feed.unreadCount} unread`}` with the numeric badge `aria-hidden`. A single `aria-live="polite"` region announces transient action results ("Marked read", "Feed marked read, N items", "No unread items", "Refreshed N feeds"); unread counts themselves are not in a live region (they update silently per row). `PublishedDate` renders a visible `YYYYMMDD` date inside `<time dateTime={iso} title={absolute}>`.
+Accessibility: the article list is a single `role="listbox"` with roving tabindex (one row `tabIndex={0}`, others `-1`, `aria-selected`); read/unread is conveyed in the accessible name, never by color alone. Feed rows compose counts into words: `aria-label={`${feed.title}, ${feed.unreadCount} unread`}` with the numeric badge `aria-hidden`. A single `aria-live="polite"` region announces transient action results ("Marked read", "Feed marked read, N items", "No unread items", "Refreshed N feeds"); unread counts themselves are not in a live region (they update silently per row). `PublishedDate` renders a visible `YYMMDD` date inside `<time dateTime={iso} title={absolute}>`.
 
 ---
 

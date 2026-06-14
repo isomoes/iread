@@ -11,10 +11,32 @@ import { ReaderSkeleton } from './ReaderSkeleton';
 import { EmptyState } from './EmptyState';
 import { ErrorState } from './ErrorState';
 import { Toolbar } from './Toolbar';
-import { PublishedDate } from './PublishedDate';
 import type { PaneState } from './paneState';
 import type { Item } from '../../shared/types';
 import type { Ref } from 'react';
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+const MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+] as const;
+
+function formatFullDate(value: number): string {
+  const date = new Date(value);
+  const wd = WEEKDAYS[date.getDay()];
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mon = MONTHS[date.getMonth()];
+  const yyyy = date.getFullYear();
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
+  const offset = -date.getTimezoneOffset();
+  const sign = offset >= 0 ? '+' : '-';
+  const abs = Math.abs(offset);
+  const oh = String(Math.floor(abs / 60)).padStart(2, '0');
+  const om = String(abs % 60).padStart(2, '0');
+  return `${wd}, ${dd} ${mon} ${yyyy} ${hh}:${mm}:${ss} ${sign}${oh}${om}`;
+}
 
 interface ReaderPaneProps {
   item: Item | undefined;
@@ -92,9 +114,9 @@ export function ReaderPane({
               </>
             ) : null}
             <span aria-hidden="true">-</span>
-            <span className="num">
-              <PublishedDate value={item.publishedAt} />
-            </span>
+            <time className="num" dateTime={new Date(item.publishedAt).toISOString()}>
+              {formatFullDate(item.publishedAt)}
+            </time>
           </div>
         </header>
 
