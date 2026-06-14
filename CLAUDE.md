@@ -40,7 +40,7 @@ Three TypeScript projects under `src/`, each with its own tsconfig:
 - Pass 2: `UPDATE` mutable content for existing rows — deliberately preserves `published_at`, `fetched_at`, `is_read`, `is_starred`.
 - `dedup_key` = `guid ?? link ?? sha256(title + feedUrl)` — never a timestamp, stable across fetches.
 
-`etag`/`last_modified` validators persist **only after** a fully successful parse+upsert; on any failure the error is recorded on the feed row and validators stay unchanged — a failed refresh is data, not an exception. `refreshAll` is sequential, one transaction per feed; one failure never aborts the loop.
+`etag`/`last_modified` validators persist **only after** a fully successful parse+upsert; on any failure the error is recorded on the feed row and validators stay unchanged — a failed refresh is data, not an exception. `refreshAll` fetches+parses feeds concurrently (bounded by `REFRESH_CONCURRENCY`) and applies each feed's writes in the same worker; because the sync `applyRefresh` never awaits, the per-feed transactions serialize naturally and only ~concurrency feeds' parsed content is resident at once. The async `planRefresh` (parallel-safe, never throws) and the sync `applyRefresh` are split for exactly this reason; the worker wraps both in a try/catch so one feed's failure — even a DB-level fault in the error path — is tallied as failed and never aborts the batch.
 
 ### Security boundaries (don't weaken these)
 

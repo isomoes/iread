@@ -517,7 +517,7 @@ WHERE id = ?;
 
 ### 5.8 Error capture
 
-Any failure (guard rejection, network, timeout, too-large, parse) is caught and recorded on the feed: `UPDATE feeds SET last_fetched_at = ?, fetch_error = ? WHERE id = ?`. The validators (`etag`/`last_modified`) are not advanced on failure. `POST /api/feeds/refresh` iterates all feeds, tallies `refreshed`/`failed`/`newItems`, and always returns 200; one failed feed never aborts the loop or fails the request. Adding a feed is the one place a parse failure surfaces as an HTTP error (422), because there is no existing row to attach the error to.
+Any failure (guard rejection, network, timeout, too-large, parse) is caught and recorded on the feed: `UPDATE feeds SET last_fetched_at = ?, fetch_error = ? WHERE id = ?`. The validators (`etag`/`last_modified`) are not advanced on failure. `POST /api/feeds/refresh` refreshes all feeds with a bounded concurrent pool (`REFRESH_CONCURRENCY`): each worker fetches+parses then applies its own plan, and because the apply step is fully synchronous the per-feed transactions never overlap. It tallies `refreshed`/`failed`/`newItems`, and always returns 200; a per-worker guard means one failed feed — even a DB-level fault — never aborts the loop or fails the request. Adding a feed is the one place a parse failure surfaces as an HTTP error (422), because there is no existing row to attach the error to.
 
 ---
 

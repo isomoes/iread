@@ -367,7 +367,24 @@ const UPDATE_FEED_ON_SUCCESS = `
   WHERE id = ?
 `;
 
-async function refreshFeedRow(row: FeedRow): Promise<RefreshOutcome> {
+type RefreshPlan =
+  | { kind: 'notModified'; now: number }
+  | {
+      kind: 'ok';
+      now: number;
+      feedMeta: IngestResult['feedMeta'];
+      commit: (feedId: number) => number;
+      etag: string | null;
+      lastModified: string | null;
+    }
+  | { kind: 'error'; now: number; message: string };
+
+// Phase 1 (async, no DB, runs concurrently across feeds): fetch + parse + sanitize.
+// Never throws — a failed fetch/parse becomes an 'error' plan so the caller's loop
+// always completes. CRITICAL (review fix #13): the new etag/last_modified are
+// carried in the plan and persisted only by applyRefresh, after a fully
+// successful parse+upsert.
+async function planRefresh(row: FeedRow): Promise<RefreshPlan> {
   const now = Date.now();
   try {
     const result = await fetchFeed({
@@ -375,46 +392,71 @@ async function refreshFeedRow(row: FeedRow): Promise<RefreshOutcome> {
       etag: row.etag,
       lastModified: row.last_modified,
     });
+    if (result.kind === 'notModified') return { kind: 'notModified', now };
+    const { feedMeta, commit } = await parseAndPrepare(row.feed_url, result.xml);
+    return {
+      kind: 'ok',
+      now,
+      feedMeta,
+      commit,
+      etag: result.etag,
+      lastModified: result.lastModified,
+    };
+  } catch (err) {
+    return { kind: 'error', now, message: err instanceof Error ? err.message : String(err) };
+  }
+}
 
-    if (result.kind === 'notModified') {
+// Record a failed refresh on the feed row. Shared by the error-plan branch and the
+// catch fallback so the UPDATE + error outcome live in exactly one place.
+function recordFeedError(row: FeedRow, now: number, message: string): RefreshOutcome {
+  db.prepare(`UPDATE feeds SET last_fetched_at = ?, fetch_error = ? WHERE id = ?`).run(
+    now,
+    message,
+    row.id,
+  );
+  return { feed: getFeedWithCounts(row.id)!, newItems: 0, ok: false };
+}
+
+// Phase 2 (synchronous DB writes): apply one plan. Fully synchronous — it never
+// awaits — so even when called from concurrent fetch workers its writes can't
+// overlap and node:sqlite never awaits mid-transaction. Only the commit + feed-row
+// update run inside the transaction.
+function applyRefresh(row: FeedRow, plan: RefreshPlan): RefreshOutcome {
+  try {
+    if (plan.kind === 'notModified') {
       // 304: nothing changed. Update last_fetched_at and clear any prior error.
       db.prepare(
         `UPDATE feeds SET last_fetched_at = ?, fetch_error = NULL WHERE id = ?`,
-      ).run(now, row.id);
+      ).run(plan.now, row.id);
       return { feed: getFeedWithCounts(row.id)!, newItems: 0, ok: true };
     }
 
-    // Parse + sanitize OUTSIDE the transaction (async, CPU work, no DB). Only the
-    // synchronous DB writes (commit) run inside the transaction so node:sqlite
-    // never awaits mid-transaction. CRITICAL (review fix #13): the new
-    // etag/last_modified are persisted only here, after a fully successful
-    // parse+upsert.
-    const { feedMeta, commit } = await parseAndPrepare(row.feed_url, result.xml);
+    if (plan.kind === 'ok') {
+      const newItems = transaction(() => {
+        const inserted = plan.commit(row.id);
+        db.prepare(UPDATE_FEED_ON_SUCCESS).run(
+          plan.feedMeta.title,
+          plan.feedMeta.siteUrl,
+          plan.feedMeta.description,
+          plan.etag,
+          plan.lastModified,
+          plan.now,
+          row.id,
+        );
+        return inserted;
+      });
+      return { feed: getFeedWithCounts(row.id)!, newItems, ok: true };
+    }
 
-    const newItems = transaction(() => {
-      const inserted = commit(row.id);
-      db.prepare(UPDATE_FEED_ON_SUCCESS).run(
-        feedMeta.title,
-        feedMeta.siteUrl,
-        feedMeta.description,
-        result.etag,
-        result.lastModified,
-        now,
-        row.id,
-      );
-      return inserted;
-    });
-
-    return { feed: getFeedWithCounts(row.id)!, newItems, ok: true };
+    return recordFeedError(row, plan.now, plan.message);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    db.prepare(`UPDATE feeds SET last_fetched_at = ?, fetch_error = ? WHERE id = ?`).run(
-      now,
-      message,
-      row.id,
-    );
-    return { feed: getFeedWithCounts(row.id)!, newItems: 0, ok: false };
+    return recordFeedError(row, plan.now, err instanceof Error ? err.message : String(err));
   }
+}
+
+async function refreshFeedRow(row: FeedRow): Promise<RefreshOutcome> {
+  return applyRefresh(row, await planRefresh(row));
 }
 
 function getFeedRow(id: number): FeedRow | undefined {
@@ -431,8 +473,37 @@ export async function refreshFeed(id: number): Promise<{ feed: FeedWithCounts; n
   return { feed: outcome.feed, newItems: outcome.newItems };
 }
 
-/** Refresh every feed sequentially. Never fails because one feed errored;
- *  tallies refreshed/failed/newItems and returns the full updated feed list. */
+// Max feeds fetched+parsed at once in refreshAll. Bounded so we never open
+// hundreds of sockets or buffer hundreds of 10 MB bodies simultaneously.
+const REFRESH_CONCURRENCY = 8;
+
+// Map items through an async worker with at most `limit` in flight, preserving
+// input order in the result. Used to overlap the per-feed fetch/parse/apply work.
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, () =>
+    (async () => {
+      for (;;) {
+        const i = next++;
+        if (i >= items.length) return;
+        results[i] = await worker(items[i]!, i);
+      }
+    })(),
+  );
+  await Promise.all(runners);
+  return results;
+}
+
+/** Refresh every feed. Each feed's fetch + parse runs concurrently (bounded by
+ *  REFRESH_CONCURRENCY) and its synchronous apply runs in the same worker, so the
+ *  DB writes serialize naturally and only ~concurrency feeds' parsed content is held
+ *  at once. Never fails because one feed errored; tallies refreshed/failed/newItems
+ *  and returns the full updated list. */
 export async function refreshAll(): Promise<{
   feeds: FeedWithCounts[];
   refreshed: number;
@@ -444,19 +515,23 @@ export async function refreshAll(): Promise<{
   let failed = 0;
   let newItems = 0;
 
-  // Sequential, one transaction per feed (commit per feed keeps each transaction
-  // short on the synchronous DB; one failure never aborts the loop).
-  for (const row of rows) {
+  // Each worker fetches+parses (concurrent) then applies its own plan (synchronous,
+  // so applies never overlap and node:sqlite stays happy). The try/catch guarantees
+  // the batch always completes: even if applyRefresh's own error path throws (a
+  // DB-level fault), that feed is tallied as failed rather than aborting the request.
+  const outcomes = await mapWithConcurrency(rows, REFRESH_CONCURRENCY, async (row) => {
     try {
-      const outcome = await refreshFeedRow(row);
-      if (outcome.ok) refreshed += 1;
-      else failed += 1;
-      newItems += outcome.newItems;
+      const outcome = applyRefresh(row, await planRefresh(row));
+      return { ok: outcome.ok, newItems: outcome.newItems };
     } catch {
-      // refreshFeedRow already records its own errors; this guards against any
-      // unexpected throw so the loop always completes.
-      failed += 1;
+      return { ok: false, newItems: 0 };
     }
+  });
+
+  for (const outcome of outcomes) {
+    if (outcome.ok) refreshed += 1;
+    else failed += 1;
+    newItems += outcome.newItems;
   }
 
   syncOpmlMirror();
