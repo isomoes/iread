@@ -352,6 +352,7 @@ Keys are case-sensitive (Shift matters): `j` is not `J`. All bindings run throug
 | `r` | Refresh current feed | If a specific feed is selected, refresh it. On a smart view, refresh the feed of the currently selected article (`item.feedId`); if no item is selected, refresh all. |
 | `R` | Refresh all feeds | Refresh every feed; global progress; invalidate `['feeds']` and `['items']` on completion. |
 | `v` | Open original | `window.open(item.link, '_blank', 'noopener,noreferrer')`. No selection change. (`o` is reader-open, so original is `v`.) |
+| `#` then N | Open link N | Every link in the reader body is numbered inline (`[N]`, document order). Press `#` to start link-jump, type the number, and it opens in a new tab — instantly when the number is unambiguous, else `Enter` confirms; `Esc`/`#` cancels. The matched link highlights and scrolls into view (newsboat-style numbered URLs). `App.tsx` resolves each href against the article URL (http/https/mailto only) and tags anchors with `data-linknum`; `useLinkJump` (a capture-phase listener) owns the numeric entry and suppresses global nav while active. |
 | `/` | Focus search | Focus + select the search input; list-nav keys go inert while focused. |
 | `Esc` | Contextual dismiss | Priority: (1) close help; (2) clear search and blur to list; (3) if reader focused, return focus to the selected row; (4) no-op. |
 | `?` | Help overlay | Toggle the keybinding modal; focus-trapped; `Esc` or `?` closes and restores focus. |

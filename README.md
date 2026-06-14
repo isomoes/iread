@@ -117,6 +117,7 @@ Keys are case-sensitive (Shift matters). Bindings fire only when you are not typ
 | `r` | Refresh current feed | Refresh the selected feed, or the feed of the selected article in a smart view. |
 | `R` | Refresh all feeds | Refresh every feed and update counts on completion. |
 | `v` | Open original | Open the article link in a new tab. |
+| `#` then N | Open link by number | Links in the article body are numbered inline `[N]`; press `#`, type the number, and it opens in a new tab — instantly once the number is unambiguous, otherwise `Enter` confirms; `Esc` cancels. |
 | `/` | Focus search | Focus and select the search input. |
 | `Esc` | Contextual dismiss | Close help, clear search, or return focus from the reader to the list. |
 | `?` | Help overlay | Toggle the keybinding overlay. |

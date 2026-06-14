@@ -122,6 +122,26 @@
   }
   .reader-prose p { margin-block: 0.85em; }
   .reader-prose a { color: var(--color-accent); text-underline-offset: 2px; }
+  .reader-prose .linknum {
+    font-family: var(--font-mono);
+    font-size: 0.68em;
+    vertical-align: super;
+    line-height: 0;
+    margin-inline-start: 0.1em;
+    letter-spacing: -0.03em;
+    color: var(--color-text-muted);
+    user-select: none;
+  }
+  .reader-prose.link-jump-active .linknum {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+  .reader-prose a[data-linknum].iread-link-target {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+    background: color-mix(in oklch, var(--color-accent) 14%, transparent);
+  }
   .reader-prose h1, .reader-prose h2, .reader-prose h3 { line-height: 1.3; margin-top: 1.4em; }
   .reader-prose img { border-radius: var(--radius-md); max-width: 100%; height: auto; }
   .reader-prose pre {

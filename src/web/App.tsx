@@ -7,6 +7,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import { AppShell, useIsMobile, type ActivePane } from './components/AppShell';
 import { HelpOverlay } from './components/HelpOverlay';
+import { LinkJumpBar } from './components/LinkJumpBar';
+import { useLinkJump } from './hooks/useLinkJump';
 import { Toast, ToastViewport } from './components/Toast';
 import { SearchBox } from './components/SearchBox';
 import { RefreshAllButton } from './components/RefreshAllButton';
@@ -72,6 +74,38 @@ export function App() {
   const itemQuery = useItem(selectedItemId);
 
   const items = useMemo(() => itemsQuery.data?.items ?? [], [itemsQuery.data]);
+
+  const reader = useMemo<{ html: string; hrefs: string[] }>(() => {
+    const item = itemQuery.data?.item;
+    const html = item?.contentHtml;
+    if (!html) return { html: '', hrefs: [] };
+    const base = item.link ?? undefined;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const hrefs: string[] = [];
+    for (const a of doc.querySelectorAll('a[href]')) {
+      const raw = a.getAttribute('href')?.trim();
+      if (!raw) continue;
+      let url: URL;
+      try {
+        url = new URL(raw, base);
+      } catch {
+        continue;
+      }
+      if (url.protocol !== 'http:' && url.protocol !== 'https:' && url.protocol !== 'mailto:') {
+        continue;
+      }
+      hrefs.push(url.href);
+      const num = hrefs.length;
+      a.setAttribute('href', url.href);
+      a.setAttribute('data-linknum', String(num));
+      const sup = doc.createElement('sup');
+      sup.className = 'linknum';
+      sup.setAttribute('aria-hidden', 'true');
+      sup.textContent = `[${num}]`;
+      a.after(sup);
+    }
+    return { html: doc.body.innerHTML, hrefs };
+  }, [itemQuery.data]);
 
   /* ---- Mutations ---- */
   const addFeed = useAddFeed();
@@ -267,6 +301,38 @@ export function App() {
   const onOpenOriginal = useCallback((item: ItemSummary) => {
     if (item.link) window.open(item.link, '_blank', 'noopener,noreferrer');
   }, []);
+
+  const openLink = useCallback((href: string) => {
+    window.open(href, '_blank', 'noopener,noreferrer');
+  }, []);
+  const linkJump = useLinkJump(reader.hrefs, openLink, helpOpen);
+
+  useEffect(() => {
+    const root = readerRef.current?.querySelector('.reader-prose');
+    if (!root) return;
+    root.classList.toggle('link-jump-active', linkJump.active);
+    root
+      .querySelectorAll('a.iread-link-target')
+      .forEach((el) => el.classList.remove('iread-link-target'));
+    if (linkJump.active && linkJump.buffer) {
+      const target = root.querySelector(`a[data-linknum="${linkJump.buffer}"]`);
+      if (target) {
+        target.classList.add('iread-link-target');
+        const glide = readerScroll.current;
+        if (glide.raf) {
+          cancelAnimationFrame(glide.raf);
+          glide.raf = 0;
+        }
+        target.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' });
+      }
+    }
+  }, [linkJump.active, linkJump.buffer, reader.html, reduceMotion]);
+
+  useEffect(() => {
+    if (linkJump.active) {
+      announce('Link jump: type a link number, Enter to open, Escape to cancel');
+    }
+  }, [linkJump.active, announce]);
 
   const onDeleteFeed = useCallback(
     (id: number) => {
@@ -575,10 +641,17 @@ export function App() {
           state: readerState,
           scrollRef: readerRef,
           onBack,
+          contentHtml: reader.html,
         }}
       />
 
       <HelpOverlay open={helpOpen} onClose={() => uiStore.setHelpOpen(false)} />
+
+      <LinkJumpBar
+        active={linkJump.active}
+        buffer={linkJump.buffer}
+        count={reader.hrefs.length}
+      />
 
       <ToastViewport>
         {toasts.map((t) => (

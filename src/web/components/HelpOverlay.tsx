@@ -23,6 +23,7 @@ const BINDINGS: { keys: string[]; action: string }[] = [
   { keys: ['A'], action: 'Mark current feed or view read' },
   { keys: ['r', 'R'], action: 'Refresh feed / all feeds' },
   { keys: ['v'], action: 'Open original in a new tab' },
+  { keys: ['#', 'N'], action: 'Open in-article link number N' },
   { keys: ['/'], action: 'Focus search' },
   { keys: ['Esc'], action: 'Dismiss (help, search, reader focus)' },
   { keys: ['?'], action: 'Toggle this help' },

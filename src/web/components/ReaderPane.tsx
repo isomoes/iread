@@ -48,6 +48,7 @@ interface ReaderPaneProps {
   scrollRef?: Ref<HTMLElement>;
   /** Mobile back nav (not rendered on desktop). Optional. */
   onBack?: () => void;
+  contentHtml?: string;
 }
 
 export function ReaderPane({
@@ -57,6 +58,7 @@ export function ReaderPane({
   onOpenOriginal,
   state,
   scrollRef,
+  contentHtml,
 }: ReaderPaneProps) {
   const reduce = useReducedMotion();
 
@@ -127,7 +129,7 @@ export function ReaderPane({
           transition={reduce ? { duration: 0 } : { duration: 0.2, ease: 'easeOut' }}
           className="reader-prose text-text-primary"
           // Server-sanitized HTML (PLAN Section 5.4); intentionally not re-sanitized.
-          dangerouslySetInnerHTML={{ __html: item.contentHtml }}
+          dangerouslySetInnerHTML={{ __html: contentHtml || item.contentHtml }}
         />
       </article>
     );
