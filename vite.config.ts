@@ -32,6 +32,6 @@ export default defineConfig({
   build: {
     outDir: distWeb,
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: false,
   },
 })
