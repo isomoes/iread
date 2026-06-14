@@ -5,6 +5,14 @@ All notable changes to this project are recorded here.
 Format per entry: `<type>: <commit message> (@who) <hash>`
 Entries are grouped by version, newest first.
 
+## 0.2.0
+
+- fix(web): move focus to list on sidebar click so j/k selects items (@isomoes) ed54d60
+- feat(web): style reader article content (tables, lists, code, headings) (@isomoes) 4b59f11
+- feat(web): open in-article links by number with #N (@isomoes) 4093852
+- feat(web): full date in reader, compact YYMMDD in article list (@isomoes) 856b359
+- feat(server): auto-save subscriptions to feeds.opml on disk (@isomoes) 96aa35a
+
 ## 0.1.0
 
 - fix(web): mark reshuffle-selected item read on first switch away (@isomoes) 78d9ea9
