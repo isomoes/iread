@@ -6,6 +6,8 @@ There is no auth, no multi-user, no cloud sync, and no background scheduler. Ref
 
 ![iread UI](https://github.com/user-attachments/assets/ca9489c9-630f-4a67-9cd5-60c18ce3544e)
 
+📺 Watch the [v0.2.2 intro video](https://www.bilibili.com/video/BV1cmJg6SEso/) on Bilibili.
+
 ## Quick start
 
 ```sh
@@ -43,18 +45,61 @@ Options:
 - OPML import (bulk add) and OPML export, plus an always-current `feeds.opml` auto-saved next to the database on every change for quick sharing and backup. The auto-saved file is a one-way snapshot of the database (overwritten on every change and at startup), so use it for backup and sharing — to bring feeds in, use OPML import.
 - Light, dark, and system theme, persisted to localStorage.
 
+## Usage
+
+1. Start the app (dev or production) and open it in your browser.
+2. Add a feed by pasting its RSS or Atom URL into the add-feed form in the sidebar, or import an OPML file from the OPML menu. A `config/sample-feeds.opml` file is included for a quick start, and [`isomoes/arch-config/iread/feeds.opml`](https://github.com/isomoes/arch-config/blob/master/iread/feeds.opml) is a real-world example (the feed set isomoes actually reads) you can import directly.
+3. Select a feed or a smart view (All, Unread, Starred) in the sidebar.
+4. Navigate the article list with `j` and `k`, open an article with `Enter`, and read it in the right pane.
+5. Press `r` to refresh the current feed or `R` to refresh all feeds. Refresh fetches remote feeds; client polling only refreshes local data and never re-fetches remotely.
+6. Star with `s`, toggle read with `m`, mark a whole scope read with `A`, and search with `/`.
+7. Press `?` at any time to see the full keyboard map. Press `t` to cycle the theme.
+
+## Keyboard shortcuts
+
+Keys are case-sensitive (Shift matters). Bindings fire only when you are not typing in an input and no Ctrl, Meta, or Alt modifier is held.
+
+| Key           | Action               | Effect                                                                                                                                                                                            |
+| ------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `j` / Down    | Next article         | Move selection down one row. Stops at the last item (no wrap).                                                                                                                                    |
+| `k` / Up      | Previous article     | Move selection up one row. Stops at the first item.                                                                                                                                               |
+| `n`           | Next unread          | Jump to the next unread item below; wrap to the first unread from the top if none below.                                                                                                          |
+| `g`           | Top                  | Select the first item and scroll to the top.                                                                                                                                                      |
+| `G`           | Bottom               | Select the last item and scroll to the bottom.                                                                                                                                                    |
+| `Enter` / `o` | Open / focus reader  | Render the selected item, mark it read, and move focus into the reader.                                                                                                                           |
+| `J` / `]`     | Next feed/view       | Move sidebar selection down and load its items, selecting the first one.                                                                                                                          |
+| `K` / `[`     | Previous feed/view   | Move sidebar selection up and load its items.                                                                                                                                                     |
+| `m`           | Toggle read/unread   | Flip the read state of the selected item; counts update.                                                                                                                                          |
+| `s`           | Toggle star          | Flip the starred state; in the Starred view an unstarred item leaves the list.                                                                                                                    |
+| `A`           | Mark feed/view read  | Mark the current scope read and offer an Undo toast.                                                                                                                                              |
+| `r`           | Refresh current feed | Refresh the selected feed, or the feed of the selected article in a smart view.                                                                                                                   |
+| `R`           | Refresh all feeds    | Refresh every feed and update counts on completion.                                                                                                                                               |
+| `v`           | Open original        | Open the article link in a new tab.                                                                                                                                                               |
+| `#` then N    | Open link by number  | Links in the article body are numbered inline `[N]`; press `#`, type the number, and it opens in a new tab — instantly once the number is unambiguous, otherwise `Enter` confirms; `Esc` cancels. |
+| `/`           | Focus search         | Focus and select the search input.                                                                                                                                                                |
+| `Esc`         | Contextual dismiss   | Close help, clear search, or return focus from the reader to the list.                                                                                                                            |
+| `?`           | Help overlay         | Toggle the keybinding overlay.                                                                                                                                                                    |
+| `t`           | Toggle theme         | Cycle light, dark, and system theme; persisted.                                                                                                                                                   |
+
+## Project layout
+
+- `src/shared/` shared, type-only DTOs used by both server and web.
+- `src/server/` Hono API, SQLite access, feed fetch/parse/sanitize, OPML, SSRF guard.
+- `src/web/` React app: three-pane layout, hooks, components, styles.
+- `data/` development SQLite database (gitignored); production data lives in `~/.config/iread/`.
+
 ## Requirements (development)
 
 - Node.js 24 or newer (the server uses the built-in `node:sqlite` module).
 - pnpm.
 
-## Install
+### Install
 
 ```sh
 pnpm install
 ```
 
-## Develop
+### Develop
 
 ```sh
 pnpm dev
@@ -84,50 +129,3 @@ pnpm start
 Open http://localhost:8787
 
 `PORT` (default 8787), `DB_PATH` (default `~/.config/iread/iread.db`), and `OPML_PATH` (default `feeds.opml` next to the database; set empty to disable the auto-saved mirror) are read from the environment. See `config/.env.example`.
-
-## Publish to npm
-
-`pnpm publish` runs the full build via the `prepack` hook and ships only `dist/` (server, shared types, and the prebuilt web bundle); the `iread` bin points at `dist/server/cli.js`. The web framework dependencies are devDependencies, so `npx @isomoes/iread` installs only the small server runtime set.
-
-## Usage
-
-1. Start the app (dev or production) and open it in your browser.
-2. Add a feed by pasting its RSS or Atom URL into the add-feed form in the sidebar, or import an OPML file from the OPML menu. A `config/sample-feeds.opml` file is included for a quick start.
-3. Select a feed or a smart view (All, Unread, Starred) in the sidebar.
-4. Navigate the article list with `j` and `k`, open an article with `Enter`, and read it in the right pane.
-5. Press `r` to refresh the current feed or `R` to refresh all feeds. Refresh fetches remote feeds; client polling only refreshes local data and never re-fetches remotely.
-6. Star with `s`, toggle read with `m`, mark a whole scope read with `A`, and search with `/`.
-7. Press `?` at any time to see the full keyboard map. Press `t` to cycle the theme.
-
-## Keyboard shortcuts
-
-Keys are case-sensitive (Shift matters). Bindings fire only when you are not typing in an input and no Ctrl, Meta, or Alt modifier is held.
-
-| Key | Action | Effect |
-|---|---|---|
-| `j` / Down | Next article | Move selection down one row. Stops at the last item (no wrap). |
-| `k` / Up | Previous article | Move selection up one row. Stops at the first item. |
-| `n` | Next unread | Jump to the next unread item below; wrap to the first unread from the top if none below. |
-| `g` | Top | Select the first item and scroll to the top. |
-| `G` | Bottom | Select the last item and scroll to the bottom. |
-| `Enter` / `o` | Open / focus reader | Render the selected item, mark it read, and move focus into the reader. |
-| `J` / `]` | Next feed/view | Move sidebar selection down and load its items, selecting the first one. |
-| `K` / `[` | Previous feed/view | Move sidebar selection up and load its items. |
-| `m` | Toggle read/unread | Flip the read state of the selected item; counts update. |
-| `s` | Toggle star | Flip the starred state; in the Starred view an unstarred item leaves the list. |
-| `A` | Mark feed/view read | Mark the current scope read and offer an Undo toast. |
-| `r` | Refresh current feed | Refresh the selected feed, or the feed of the selected article in a smart view. |
-| `R` | Refresh all feeds | Refresh every feed and update counts on completion. |
-| `v` | Open original | Open the article link in a new tab. |
-| `#` then N | Open link by number | Links in the article body are numbered inline `[N]`; press `#`, type the number, and it opens in a new tab — instantly once the number is unambiguous, otherwise `Enter` confirms; `Esc` cancels. |
-| `/` | Focus search | Focus and select the search input. |
-| `Esc` | Contextual dismiss | Close help, clear search, or return focus from the reader to the list. |
-| `?` | Help overlay | Toggle the keybinding overlay. |
-| `t` | Toggle theme | Cycle light, dark, and system theme; persisted. |
-
-## Project layout
-
-- `src/shared/` shared, type-only DTOs used by both server and web.
-- `src/server/` Hono API, SQLite access, feed fetch/parse/sanitize, OPML, SSRF guard.
-- `src/web/` React app: three-pane layout, hooks, components, styles.
-- `data/` development SQLite database (gitignored); production data lives in `~/.config/iread/`.
