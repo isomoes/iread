@@ -33,8 +33,8 @@ export interface KeyboardNavConfig {
 
   /** Which pane currently holds focus; j/k and the arrow aliases dispatch per pane. */
   getFocusedPane: () => ActivePane;
-  /** Scroll the reader (j/k = line, f/b = full page): dir -1 up, +1 down. */
-  onScrollReader: (dir: -1 | 1, amount: 'line' | 'page') => void;
+  /** Scroll the reader (j/k = line, f/b = full page, g/G = top/bottom): dir -1 up, +1 down. */
+  onScrollReader: (dir: -1 | 1, amount: 'line' | 'page' | 'edge') => void;
   /** After a sidebar-focused j/k selection, move DOM focus onto the new feed/view row. */
   onSidebarFocusFollow: () => void;
 
@@ -129,6 +129,12 @@ export function useKeyboardNav(config: KeyboardNavConfig): void {
         c.onSelectSidebar(t);
         c.onSidebarFocusFollow();
       };
+      const jumpSidebar = (idx: number): void => {
+        const t = c.sidebarTargets[idx];
+        if (!t) return;
+        c.onSelectSidebar(t);
+        c.onSidebarFocusFollow();
+      };
 
       switch (e.key) {
         /* ---- Vertical nav, pane-contextual (list item / sidebar feed / reader scroll) ---- */
@@ -161,12 +167,30 @@ export function useKeyboardNav(config: KeyboardNavConfig): void {
         }
         case 'g': {
           e.preventDefault();
+          const pane = c.getFocusedPane();
+          if (pane === 'reader') {
+            c.onScrollReader(-1, 'edge');
+            break;
+          }
+          if (pane === 'sidebar') {
+            jumpSidebar(0);
+            break;
+          }
           const first = items[0];
           if (first) c.onSelectItem(first.id);
           break;
         }
         case 'G': {
           e.preventDefault();
+          const pane = c.getFocusedPane();
+          if (pane === 'reader') {
+            c.onScrollReader(1, 'edge');
+            break;
+          }
+          if (pane === 'sidebar') {
+            jumpSidebar(c.sidebarTargets.length - 1);
+            break;
+          }
           const last = items[items.length - 1];
           if (last) c.onSelectItem(last.id);
           break;

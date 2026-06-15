@@ -339,8 +339,8 @@ Keys are case-sensitive (Shift matters): `j` is not `J`. All bindings run throug
 | `j` / ArrowDown | Down in focused pane | Pane-contextual: in the list, move item selection down 1 (roving focus + scroll into view); in the sidebar, move feed/view selection down 1 (focus follows, loads its items); in the reader, scroll down. Stops at the end (no wrap). On >= 768px the reader pane renders the new selection, and the item navigated away from is auto-marked read (mark-on-leave, optimistic, idempotent); the arrived item stays unread until it is itself left or opened. |
 | `k` / ArrowUp | Up in focused pane | As `j`, upward; the reader scrolls up. Stops at the start. |
 | `n` | Next unread | Jump to the next unread item below the current; wrap to first unread from top if none below; if none, polite live-region note and no-op. |
-| `g` | Top | Select first item; focus + scroll to top. (Single press, no `gg` chord in MVP.) |
-| `G` | Bottom | Select last item; focus + scroll to bottom. |
+| `g` | Top | Pane-contextual: in the list, select first item, focus + scroll to top; in the sidebar, jump to the first feed/view (focus follows); in the reader, scroll the article to the top (eased glide). (Single press, no `gg` chord in MVP.) |
+| `G` | Bottom | Pane-contextual: in the list, select last item, focus + scroll to bottom; in the sidebar, jump to the last feed/view; in the reader, scroll the article to the bottom. |
 | `Enter` / `o` | Open / focus reader | Render selected item in reader, mark read (optimistic, idempotent), move DOM focus into the reader scroll container. |
 | `h` / ArrowLeft | Focus pane left | Move DOM focus one pane left (reader -> list -> sidebar): sidebar lands on the selected feed/view, list on the roving row. Stops at the sidebar (no wrap). On < 768px also routes the visible pane. |
 | `l` / ArrowRight | Focus pane right | As above, right (sidebar -> list -> reader); the reader focuses its scroll container. Stops at the reader. |

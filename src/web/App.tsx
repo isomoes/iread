@@ -417,7 +417,7 @@ export function App() {
      the key glides continuously instead of stepping. Reduced motion -> instant jump. */
   const readerScroll = useRef({ target: 0, raf: 0 });
   const scrollReader = useCallback(
-    (dir: -1 | 1, amount: 'line' | 'page' = 'line') => {
+    (dir: -1 | 1, amount: 'line' | 'page' | 'edge' = 'line') => {
       const el = readerRef.current;
       if (!el) return;
       const max = el.scrollHeight - el.clientHeight;
@@ -425,9 +425,11 @@ export function App() {
       // Full page keeps a sliver of overlap (0.9) for reading continuity.
       const frac = amount === 'page' ? 0.9 : 0.16;
       const step = Math.max(48, Math.round(el.clientHeight * frac));
+      const edge = dir < 0 ? 0 : max;
 
       if (reduceMotion) {
-        el.scrollTop = Math.max(0, Math.min(max, el.scrollTop + dir * step));
+        el.scrollTop =
+          amount === 'edge' ? edge : Math.max(0, Math.min(max, el.scrollTop + dir * step));
         return;
       }
 
@@ -435,7 +437,7 @@ export function App() {
       // Re-seed the target from the live position whenever no glide is in flight, so
       // manual wheel/trackpad scrolling and article changes stay in sync.
       if (!s.raf) s.target = el.scrollTop;
-      s.target = Math.max(0, Math.min(max, s.target + dir * step));
+      s.target = amount === 'edge' ? edge : Math.max(0, Math.min(max, s.target + dir * step));
 
       const tick = () => {
         const node = readerRef.current;

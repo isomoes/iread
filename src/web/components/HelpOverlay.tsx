@@ -15,7 +15,7 @@ const BINDINGS: { keys: string[]; action: string }[] = [
   { keys: ['j', 'k'], action: 'Down / up: article, feed, or scroll' },
   { keys: ['f', 'b'], action: 'Scroll reader forward / back a page' },
   { keys: ['n'], action: 'Next unread' },
-  { keys: ['g', 'G'], action: 'Top / bottom of list' },
+  { keys: ['g', 'G'], action: 'Top / bottom: list, feed, or reader' },
   { keys: ['Enter'], action: 'Open / focus reader' },
   { keys: ['h', 'l'], action: 'Focus pane left / right' },
   { keys: ['m'], action: 'Toggle read / unread' },
