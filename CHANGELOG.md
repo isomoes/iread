@@ -5,6 +5,13 @@ All notable changes to this project are recorded here.
 Format per entry: `<type>: <commit message> (@who) <hash>`
 Entries are grouped by version, newest first.
 
+## 0.2.2
+
+- docs: add UI screenshot to README intro (@isomoes) 4e22cb1
+- fix(server): keep OPML mirror dateCreated stable when feeds unchanged (@isomoes) a39b623
+- perf(server): fetch feeds concurrently during refresh-all (@isomoes) a63b163
+- build: disable source maps in production output (@isomoes) fec0fbf
+
 ## 0.2.1
 
 - fix(web): move focus to list on sidebar click so j/k selects items (@isomoes) ed54d60
