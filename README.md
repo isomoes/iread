@@ -4,6 +4,8 @@ A concise, local, single-user RSS/Atom reader inspired by newsboat. Keyboard-fir
 
 There is no auth, no multi-user, no cloud sync, and no background scheduler. Refresh is always user-initiated. All data lives in a single local SQLite file — by default `~/.config/iread/iread.db` — which is the trust boundary.
 
+![iread UI](https://github.com/user-attachments/assets/ca9489c9-630f-4a67-9cd5-60c18ce3544e)
+
 ## Quick start
 
 ```sh
