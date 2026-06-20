@@ -1,0 +1,21 @@
+# Keep the build context (and resulting image) lean — only what `pnpm build`
+# needs reaches the daemon. node_modules and dist are rebuilt inside the image.
+node_modules
+dist
+data
+.git
+.gitignore
+.github
+.claude
+.mcp.json
+docs
+prompt
+config
+skills-lock.json
+LICENSE
+*.md
+*.log
+.env
+Dockerfile
+docker-compose.yml
+.dockerignore

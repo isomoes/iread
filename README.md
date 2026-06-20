@@ -30,6 +30,26 @@ Options:
   -h, --help         Show this help and exit
 ```
 
+## Run with Docker
+
+Prebuilt multi-arch images (amd64 + arm64) are published to the GitHub Container Registry, so no Node.js on the host is required:
+
+```sh
+docker run -d --name iread -p 8787:8787 -v iread-data:/data ghcr.io/isomoes/iread:latest
+```
+
+Then open http://localhost:8787. The SQLite database and the auto-saved `feeds.opml` mirror live under `/data` in the container — here the named `iread-data` volume — so your subscriptions survive container upgrades.
+
+A `docker-compose.yml` is included for the same thing:
+
+```sh
+docker compose up -d
+```
+
+Build the image from the checkout instead of pulling it with `docker compose up -d --build`, or `docker build -t iread .`.
+
+`PORT` (default 8787), `DB_PATH` (default `/data/iread.db`), and `OPML_PATH` (default `/data/feeds.opml`) are configurable via `-e`/`environment:`. To store data in a host directory instead of a named volume, bind-mount it and make it writable by the image's unprivileged `node` user (uid 1000), e.g. `mkdir iread-data && sudo chown 1000:1000 iread-data` then `-v "$PWD/iread-data:/data"`.
+
 ## Features
 
 - Add a feed by URL (title resolved from feed metadata), delete a feed.

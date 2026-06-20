@@ -1,0 +1,17 @@
+# Run iread with Docker Compose:
+#   docker compose up -d            # pull ghcr.io/isomoes/iread:latest and start
+#   docker compose up -d --build    # build from this checkout instead of pulling
+# Then open http://localhost:8787. Data persists in the named `iread-data` volume.
+services:
+  iread:
+    image: ghcr.io/isomoes/iread:latest
+    build: .
+    container_name: iread
+    ports:
+      - "8787:8787"
+    volumes:
+      - iread-data:/data
+    restart: unless-stopped
+
+volumes:
+  iread-data:
