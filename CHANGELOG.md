@@ -5,6 +5,12 @@ All notable changes to this project are recorded here.
 Format per entry: `<type>: <commit message> (@who) <hash>`
 Entries are grouped by version, newest first.
 
+## 0.2.3
+
+- feat: add Docker packaging and ghcr image publishing (@isomoes) 294115b
+- feat(web): make g/G pane-contextual for reader and sidebar (@isomoes) bb40709
+- docs: link isomoes feeds.opml as a real-world OPML example (@isomoes) e8b6658
+
 ## 0.2.2
 
 - docs: add UI screenshot to README intro (@isomoes) 4e22cb1

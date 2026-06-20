@@ -1,6 +1,6 @@
 {
   "name": "@isomoes/iread",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Local, single-user RSS/Atom reader with a keyboard-first three-pane web UI, inspired by newsboat.",
   "type": "module",
   "license": "MIT",
