@@ -5,7 +5,8 @@
 // Renders loading (ReaderSkeleton), the empty/error states (DESIGN Section 6),
 // and animates content on article change (key={item.id}): opacity 0 -> 1 + y
 // 6 -> 0, 200ms ease-out, gated by useReducedMotion (DESIGN Section 10).
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotion, useMotionValue, scroll } from 'motion/react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Newspaper } from '@phosphor-icons/react';
 import { ReaderSkeleton } from './ReaderSkeleton';
 import { EmptyState } from './EmptyState';
@@ -13,7 +14,7 @@ import { ErrorState } from './ErrorState';
 import { Toolbar } from './Toolbar';
 import type { PaneState } from './paneState';
 import type { Item } from '../../shared/types';
-import type { Ref } from 'react';
+import type { Ref, MutableRefObject } from 'react';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 const MONTHS = [
@@ -62,7 +63,31 @@ export function ReaderPane({
 }: ReaderPaneProps) {
   const reduce = useReducedMotion();
 
+  const scrollerRef = useRef<HTMLElement | null>(null);
+  const setScroller = useCallback(
+    (node: HTMLElement | null) => {
+      scrollerRef.current = node;
+      if (typeof scrollRef === 'function') scrollRef(node);
+      else if (scrollRef) (scrollRef as MutableRefObject<HTMLElement | null>).current = node;
+    },
+    [scrollRef],
+  );
+
+  const railScaleX = useMotionValue(0);
+  const railOpacity = useMotionValue(0);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const options = { container: el, axis: 'y' as const, trackContentSize: true };
+    return scroll((progress, info) => {
+      railScaleX.set(progress);
+      railOpacity.set(info.y.scrollLength > 0 ? 1 : 0);
+    }, options);
+  }, [railScaleX, railOpacity]);
+
   let body: React.ReactNode;
+  let hasArticle = false;
 
   if (state.status === 'loading') {
     body = <ReaderSkeleton />;
@@ -91,6 +116,7 @@ export function ReaderPane({
       />
     );
   } else {
+    hasArticle = true;
     body = (
       <article aria-label={item.title} className="px-6 py-6">
         <header className="mb-5 flex flex-col gap-2 border-b border-border pb-4">
@@ -137,12 +163,20 @@ export function ReaderPane({
 
   return (
     <section
-      ref={scrollRef}
+      ref={setScroller}
       aria-label="Reader"
       aria-busy={state.status === 'loading' ? true : undefined}
       tabIndex={-1}
       className="h-full overflow-y-auto bg-bg outline-none"
     >
+      {hasArticle ? (
+        <div aria-hidden className="pointer-events-none sticky top-0 z-20 h-0">
+          <motion.div
+            className="h-0.5 w-full origin-left bg-accent"
+            style={{ scaleX: railScaleX, opacity: railOpacity }}
+          />
+        </div>
+      ) : null}
       {body}
     </section>
   );

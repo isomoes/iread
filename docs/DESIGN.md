@@ -253,7 +253,7 @@ Density 6 (compact but breathing):
 | `ThemeToggle` | Cycles light / dark / system; persists. | `theme`, `onChange` |
 | `ArticleList` | Middle pane: rows for the current view/feed. `role="listbox"` labeled Articles. | `items: ItemSummary[]`, `total`, `selectedId`, `onSelect`, `state` |
 | `ArticleRow` | Title, source `feedTitle`, published date `YYMMDD` (mono), `UnreadDot`, star toggle. `role="option"`. | `item: ItemSummary`, `selected`, `onSelect`, `onToggleStar` |
-| `ReaderPane` | Right pane: sanitized `contentHtml`, header meta (full date, e.g. `Sat, 13 Jun 2026 08:50:03 +0800`), open-original, read/star toolbar. ARIA `main`/`article`. | `item: Item \| undefined`, `onToggleRead`, `onToggleStar`, `state` |
+| `ReaderPane` | Right pane: sanitized `contentHtml`, header meta (full date, e.g. `Sat, 13 Jun 2026 08:50:03 +0800`), open-original, read/star toolbar, and a 2px scroll-progress rail pinned to the pane's top edge. ARIA `main`/`article`. | `item: Item \| undefined`, `onToggleRead`, `onToggleStar`, `state` |
 | `Toolbar` | Action bar in reader (mark read, star, open original). | `item`, handlers |
 | `SearchBox` | `/`-focusable filter over current list; `role="search"`. | `value`, `onChange`, `onClear` |
 | `HelpOverlay` | `?` modal of keybindings (mono kbd chips). ARIA `dialog`, focus-trapped. | `open`, `onClose` |
@@ -325,6 +325,7 @@ Reader pane (right)
 - Empty (nothing selected): `Select an article`, body `Choose an article from the list to read it here.`
 - Empty (content stripped to nothing): `This article has no readable body.`, action `Open original`.
 - Error: `Could not open this article.` with `Retry`.
+- Reading progress: a 2px accent hairline pinned to the pane's top edge (`sticky`, zero-height wrapper, no content shift) fills left-to-right as the reader scrolls. It is the single ambient progress signal: the accent already in use, no track, no number. Rendered only when an article body is shown (not over the loading/empty/error states), and kept invisible (`opacity 0`) when the content is too short to scroll, so a snippet feed never shows a full bar. `aria-hidden` (screen readers expose scroll position natively).
 
 All copy uses plain hyphens only. There are zero em-dashes and zero en-dashes anywhere in this document's user-facing strings.
 
@@ -513,13 +514,14 @@ const toggleRead = useMutation({
 
 ## 10. Motion Spec (MOTION_INTENSITY 3)
 
-Library `motion/react`. Animate only `transform` and `opacity`. No scroll listeners; pane reveal uses `AnimatePresence`; any in-view effect uses IntersectionObserver.
+Library `motion/react`. Animate only `transform` and `opacity`. No React-state scroll handlers (which would re-render on every scroll); pane reveal uses `AnimatePresence`; any in-view effect uses IntersectionObserver. The one scroll-driven element, the reader progress rail, uses motion's `scroll()` to feed `MotionValue`s bound to `transform`/`opacity` - a passive native listener that never re-renders React, so it honors this rule (a reviewer grepping `addEventListener('scroll')` will find it inside motion, not app code).
 
 | Element | Animates | Spec |
 |---|---|---|
 | Row hover | bg tint via `whileHover` (instant) + `whileTap={{ scale: 0.98 }}` | tactile, ~120ms |
 | Row enter | opacity 0->1, `y: 4 -> 0`, staggered 18ms, capped at first ~12 rows | 160ms ease-out |
 | Reader content | opacity 0->1 + `y: 6 -> 0` on article change (`key={item.id}`) | 200ms ease-out |
+| Reader progress rail | `scaleX` (origin-left) bound 1:1 to scroll progress; `opacity` gates on scrollability | no transition (position, not motion); identical under reduced-motion |
 | Mobile pane transition | `x: 24 -> 0` in, `x: -16` out, `AnimatePresence` mode `popLayout` | spring `{ stiffness: 320, damping: 32 }` |
 | Selection highlight (desktop) | `layoutId="rowSelect"` accent bar between rows | spring `{ stiffness: 500, damping: 40 }` |
 | RefreshAll icon | continuous `rotate` while pending | linear 800ms loop |
