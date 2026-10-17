@@ -48,7 +48,7 @@ docker compose up -d
 
 Build the image from the checkout instead of pulling it with `docker compose up -d --build`, or `docker build -t iread .`.
 
-`PORT` (default 8787), `DB_PATH` (default `/data/iread.db`), and `OPML_PATH` (default `/data/feeds.opml`) are configurable via `-e`/`environment:`. To store data in a host directory instead of a named volume, bind-mount it and make it writable by the image's unprivileged `node` user (uid 1000), e.g. `mkdir iread-data && sudo chown 1000:1000 iread-data` then `-v "$PWD/iread-data:/data"`.
+`PORT` (default 8787), `HOST` (default all interfaces), `DB_PATH` (default `/data/iread.db`), and `OPML_PATH` (default `/data/feeds.opml`) are configurable via `-e`/`environment:`. With host networking, set `HOST=127.0.0.1` to restrict access to localhost; with bridge networking, leave `HOST` unset and restrict the published port instead. To store data in a host directory instead of a named volume, bind-mount it and make it writable by the image's unprivileged `node` user (uid 1000), e.g. `mkdir iread-data && sudo chown 1000:1000 iread-data` then `-v "$PWD/iread-data:/data"`.
 
 ## Features
 
@@ -148,4 +148,4 @@ pnpm start
 
 Open http://localhost:8787
 
-`PORT` (default 8787), `DB_PATH` (default `~/.config/iread/iread.db`), and `OPML_PATH` (default `feeds.opml` next to the database; set empty to disable the auto-saved mirror) are read from the environment. See `config/.env.example`.
+`PORT` (default 8787), `HOST` (default all interfaces; set `127.0.0.1` for localhost only), `DB_PATH` (default `~/.config/iread/iread.db`), and `OPML_PATH` (default `feeds.opml` next to the database; set empty to disable the auto-saved mirror) are read from the environment. See `config/.env.example`.

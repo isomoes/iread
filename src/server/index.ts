@@ -16,6 +16,7 @@ import { items } from './routes/items.js';
 import { opml } from './routes/opml.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
+const HOST = process.env.HOST || undefined;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 // Importing ./db has the side effect of opening the DB and running migrations.
@@ -71,7 +72,7 @@ if (IS_PROD) {
 
 // --- Start ------------------------------------------------------------------
 
-serve({ fetch: app.fetch, port: PORT }, (info) => {
+serve({ fetch: app.fetch, port: PORT, hostname: HOST }, (info) => {
   const url = `http://localhost:${info.port}`;
   console.log(`[iread] listening on ${url}`);
 });
