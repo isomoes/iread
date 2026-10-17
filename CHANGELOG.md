@@ -5,6 +5,11 @@ All notable changes to this project are recorded here.
 Format per entry: `<type>: <commit message> (@who) <hash>`
 Entries are grouped by version, newest first.
 
+## 0.2.4
+
+- fix(server): allow restricting the bind address with HOST (@isomoes) b436a7e
+- feat(web): add reader scroll-progress rail (@isomoes) 4ed240c
+
 ## 0.2.3
 
 - feat: add Docker packaging and ghcr image publishing (@isomoes) 294115b
