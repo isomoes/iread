@@ -5,6 +5,10 @@ All notable changes to this project are recorded here.
 Format per entry: `<type>: <commit message> (@who) <hash>`
 Entries are grouped by version, newest first.
 
+## 0.2.5
+
+- feat(server): support HTTP(S)_PROXY and NO_PROXY for feed fetching (@isomoes) a3c3dab
+
 ## 0.2.4
 
 - fix(server): allow restricting the bind address with HOST (@isomoes) b436a7e
