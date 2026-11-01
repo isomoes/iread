@@ -149,3 +149,5 @@ pnpm start
 Open http://localhost:8787
 
 `PORT` (default 8787), `HOST` (default all interfaces; set `127.0.0.1` for localhost only), `DB_PATH` (default `~/.config/iread/iread.db`), and `OPML_PATH` (default `feeds.opml` next to the database; set empty to disable the auto-saved mirror) are read from the environment. See `config/.env.example`.
+
+Feeds are fetched directly by default. To go through an outbound HTTP proxy, set `HTTPS_PROXY` / `HTTP_PROXY` (an `http://host:port` URL, optionally with `user:pass@`) and optionally `NO_PROXY` (comma-separated hosts/domains to bypass). HTTPS feeds are tunnelled with `CONNECT`. Note that the SSRF guard still validates the feed host's DNS answer locally, but with a proxy the proxy does the final connect, so DNS-rebinding pinning cannot apply.

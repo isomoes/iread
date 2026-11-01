@@ -5,9 +5,11 @@
 
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
-import { request as httpRequest, type IncomingMessage } from 'node:http';
+import { request as httpRequest, type IncomingMessage, type RequestOptions } from 'node:http';
 import { request as httpsRequest } from 'node:https';
+import type { Socket } from 'node:net';
 import { Readable } from 'node:stream';
+import { plainProxyHeaders, proxyFor, tunnelTls } from './proxy.js';
 
 const MAX_REDIRECTS = 5;
 
@@ -219,14 +221,37 @@ function pinnedFetch(
   const isHttps = parsed.protocol === 'https:';
   const requestFn = isHttps ? httpsRequest : httpRequest;
   const signal = init.signal ?? undefined;
+  const proxy = proxyFor(parsed);
 
+  return (async () => {
+    // Via a proxy the destination was still validated (assertSafeFeedUrl) but the
+    // proxy performs the final resolve+connect, so IP pinning cannot apply.
+    let tunnel: Socket | undefined;
+    if (proxy && isHttps) tunnel = await tunnelTls(proxy, parsed, signal);
+    return send(tunnel);
+  })();
+
+  function send(tunnel: Socket | undefined): Promise<Response> {
   return new Promise<Response>((resolve, reject) => {
-    const req = requestFn(
-      parsed,
+    const headers = headersToObject(init.headers);
+    let target: URL | string = parsed;
+    let extra: RequestOptions = { lookup: pinnedLookup(validated) };
+    let fn = requestFn;
+    if (tunnel) {
+      extra = { createConnection: () => tunnel };
+    } else if (proxy) {
+      // Plain-http target: absolute-URI request to the proxy.
+      fn = httpRequest;
+      target = new URL(`http://${proxy.host.includes(':') ? `[${proxy.host}]` : proxy.host}:${proxy.port}`);
+      extra = { path: parsed.href, setHost: false };
+      Object.assign(headers, { host: parsed.host }, plainProxyHeaders(proxy));
+    }
+    const req = fn(
+      target,
       {
         method: (init.method ?? 'GET').toUpperCase(),
-        headers: headersToObject(init.headers),
-        lookup: pinnedLookup(validated),
+        headers,
+        ...extra,
         // servername defaults to the URL hostname for https, preserving SNI.
       },
       (msg: IncomingMessage) => {
@@ -264,6 +289,7 @@ function pinnedFetch(
     req.on('error', reject);
     req.end();
   });
+  }
 }
 
 /**
