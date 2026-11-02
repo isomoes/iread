@@ -11,7 +11,7 @@ iread — a local, single-user RSS/Atom reader (newsboat-inspired), TypeScript e
 ## Commands
 
 - `pnpm dev` — API server (port 8787) + Vite dev server (port 5173, proxies `/api`). Open http://localhost:5173.
-- `pnpm typecheck` — **the primary correctness gate** (no test suite, no linter). Run after changes.
+- `pnpm typecheck` — **the primary correctness gate** (no linter). Run after changes. `pnpm test` runs fetch/proxy regression tests.
 - `pnpm build` / `pnpm start` — production: one Hono process serves the API + static bundle on 8787.
 - `pnpm publish` — npm package; `prepack` runs the build, `files` ships only `dist/`, and the `iread` bin (`src/server/cli.ts` → `dist/server/cli.js`) is what `npx @isomoes/iread` runs (flags → `PORT`/`DB_PATH`/`OPML_PATH` env, defaults `NODE_ENV=production`). Web/React deps are devDependencies — keep server runtime imports limited to the five packages under `dependencies`.
 
@@ -45,7 +45,7 @@ Three TypeScript projects under `src/`, each with its own tsconfig:
 ### Security boundaries (don't weaken these)
 
 - `ssrf.ts` — scheme allowlist + DNS-resolved IP-range blocking (loopback/private/link-local/CGNAT/…), re-validated on every redirect hop (manual following, max 5). The connection is pinned to the pre-validated IPs via a custom `lookup` to close the DNS-rebinding/TOCTOU gap.
-- `fetch-feed.ts` — streams and aborts past 10 MB; 15s timeout; conditional GET.
+- `fetch-feed.ts` — streams and aborts past 10 MB; 30s per-attempt timeout; one retry for transient failures; conditional GET.
 - `sanitize.ts` — article HTML is sanitized **before it touches the DB**; the client renders stored `content_html` with `dangerouslySetInnerHTML` without re-sanitizing. A second regex pass strips non-raster `data:` URLs.
 - `opml.ts` — `processEntities: false` and rejection of any `<!DOCTYPE>` (XXE/billion-laughs).
 

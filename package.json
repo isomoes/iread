@@ -41,6 +41,7 @@
     "build:web": "vite build",
     "start": "NODE_ENV=production node --disable-warning=ExperimentalWarning dist/server/index.js",
     "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.web.json --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
     "preview": "vite preview",
     "prepack": "pnpm build",
     "clean": "rm -rf dist"

@@ -4,10 +4,34 @@
 // bytes exceed MAX_BYTES; the whole response is never buffered before the check.
 
 import { fetchWithGuardedRedirects } from './ssrf.js';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const USER_AGENT = 'iread/1.0 (+local RSS reader)';
-const FETCH_TIMEOUT_MS = 15_000;
+const FETCH_TIMEOUT_MS = 30_000;
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const RETRY_CODES = new Set([
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EAI_AGAIN',
+  'ENETUNREACH',
+  'EHOSTUNREACH',
+  'EPIPE',
+  'ERR_STREAM_PREMATURE_CLOSE',
+]);
+
+class RetryableFetchError extends Error {
+  constructor(message: string, readonly retryDelay = 1000) {
+    super(message);
+  }
+}
+
+function isTransient(err: unknown): boolean {
+  if (err instanceof RetryableFetchError) return true;
+  if (err instanceof AggregateError) return err.errors.length > 0 && err.errors.every(isTransient);
+  if (!(err instanceof Error)) return false;
+  return RETRY_CODES.has((err as NodeJS.ErrnoException).code ?? '') || isTransient(err.cause);
+}
 
 export interface FetchInput {
   feedUrl: string;
@@ -30,6 +54,17 @@ function concat(chunks: Uint8Array[], total: number): Uint8Array {
 }
 
 export async function fetchFeed(input: FetchInput): Promise<FetchResult> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetchAttempt(input);
+    } catch (err) {
+      if (attempt >= 1 || !isTransient(err)) throw err;
+      await delay(err instanceof RetryableFetchError ? err.retryDelay : 1000);
+    }
+  }
+}
+
+async function fetchAttempt(input: FetchInput): Promise<FetchResult> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -54,7 +89,20 @@ export async function fetchFeed(input: FetchInput): Promise<FetchResult> {
     }
     if (!res.ok) {
       await res.body?.cancel().catch(() => {});
-      throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      const message = `HTTP ${res.status} ${res.statusText}`;
+      const retryAfter = res.headers.get('retry-after');
+      const retryDelay = retryAfter === null
+        ? 1000
+        : /^\d+$/.test(retryAfter)
+          ? Number(retryAfter) * 1000
+          : Math.max(0, Date.parse(retryAfter) - Date.now());
+      if (
+        [408, 429, 500, 502, 503, 504].includes(res.status) &&
+        Number.isFinite(retryDelay) && retryDelay <= 5000
+      ) {
+        throw new RetryableFetchError(message, retryDelay);
+      }
+      throw new Error(message);
     }
 
     // Fast reject on advertised Content-Length (untrusted but cheap).
@@ -92,6 +140,11 @@ export async function fetchFeed(input: FetchInput): Promise<FetchResult> {
       etag: res.headers.get('etag'),
       lastModified: res.headers.get('last-modified'),
     };
+  } catch (err) {
+    if (ctrl.signal.aborted && err instanceof Error && err.name === 'AbortError') {
+      throw new RetryableFetchError(`Feed request timed out after ${FETCH_TIMEOUT_MS / 1000}s`);
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
   }

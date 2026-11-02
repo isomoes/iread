@@ -87,23 +87,37 @@ export function tunnelTls(
       path: authority,
       headers: { Host: authority, ...proxyAuthHeader(proxy) },
     });
-    const abort = () => req.destroy(new DOMException('Aborted', 'AbortError'));
+    let tunnel: Socket | undefined;
+    const cleanup = () => signal?.removeEventListener('abort', abort);
+    const fail = (err: Error) => {
+      cleanup();
+      reject(err);
+    };
+    const abort = () => {
+      const err = new DOMException('Aborted', 'AbortError');
+      tunnel?.destroy(err);
+      req.destroy(err);
+      fail(err);
+    };
     if (signal) {
       if (signal.aborted) abort();
       else signal.addEventListener('abort', abort, { once: true });
     }
     req.once('connect', (res, socket) => {
-      signal?.removeEventListener('abort', abort);
       if (res.statusCode !== 200) {
         socket.destroy();
-        reject(new Error(`proxy CONNECT failed: HTTP ${res.statusCode ?? 0}`));
+        fail(new Error(`proxy CONNECT failed: HTTP ${res.statusCode ?? 0}`));
         return;
       }
       const tls = tlsConnect({ socket, servername: hostname });
-      tls.once('secureConnect', () => resolve(tls));
-      tls.once('error', reject);
+      tunnel = tls;
+      tls.once('secureConnect', () => {
+        cleanup();
+        resolve(tls);
+      });
+      tls.once('error', fail);
     });
-    req.once('error', reject);
+    req.once('error', fail);
     req.end();
   });
 }

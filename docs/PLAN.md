@@ -304,7 +304,7 @@ Module: `src/server/feed-service.ts` with helpers in `fetch-feed.ts`, `sanitize.
 
 ```ts
 const USER_AGENT = 'iread/1.0 (+local RSS reader)'
-const FETCH_TIMEOUT_MS = 15_000
+const FETCH_TIMEOUT_MS = 30_000
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 
 interface FetchInput { feedUrl: string; etag: string | null; lastModified: string | null }
@@ -357,6 +357,8 @@ async function fetchFeed(input: FetchInput): Promise<FetchResult> {
   }
 }
 ```
+
+The sketch above shows one attempt. The implementation retries transient network failures, timeouts, and HTTP 408/429/500/502/503/504 once with a fresh 30-second deadline, normally after one second. A valid `Retry-After` up to five seconds overrides that delay; longer or invalid values prevent automatic retry. Unsafe URLs, permanent HTTP errors, oversized bodies, and parse failures are not retried. Proxy cancellation covers both CONNECT and the subsequent TLS handshake. Timeout errors state the elapsed limit rather than only reporting “Aborted”.
 
 Conditional GET is best-effort politeness; correctness never depends on it. CRITICAL (review fix #13): the new `etag`/`lastModified` are persisted ONLY inside the same transaction as a fully successful parse-and-upsert. If anything after the 200 fails (parse, sanitize, DB), the validators are left unchanged (or null) so the feed cannot get permanently stuck behind a 304 for a body that was never ingested.
 
