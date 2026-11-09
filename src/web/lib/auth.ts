@@ -2,12 +2,16 @@ const TOKEN_KEY = 'iread.authToken';
 export const AUTH_REQUIRED_EVENT = 'iread:auth-required';
 
 export function getAuthToken(): string {
-  return sessionStorage.getItem(TOKEN_KEY) ?? '';
+  return sessionStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(TOKEN_KEY) ?? '';
 }
 
-export function setAuthToken(token: string): void {
-  if (token) sessionStorage.setItem(TOKEN_KEY, token);
-  else sessionStorage.removeItem(TOKEN_KEY);
+export function setAuthToken(token: string, rememberMe = false): void {
+  sessionStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  if (token) {
+    const storage = rememberMe ? localStorage : sessionStorage;
+    storage.setItem(TOKEN_KEY, token);
+  }
 }
 
 export async function authenticatedFetch(url: string, init: RequestInit = {}): Promise<Response> {

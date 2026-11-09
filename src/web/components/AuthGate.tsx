@@ -8,6 +8,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<'checking' | 'required' | 'ready' | 'error'>('checking');
   const [token, setToken] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
 
@@ -39,6 +40,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setAuthToken(token);
     try {
       await api.checkAuth();
+      setAuthToken(token, rememberMe);
       setToken('');
       setStatus('ready');
     } catch (cause) {
@@ -76,6 +78,17 @@ export function AuthGate({ children }: { children: ReactNode }) {
               disabled={pending}
               className="rounded-sm border border-border bg-surface px-3 py-2"
             />
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(event) => setRememberMe(event.target.checked)}
+                disabled={pending}
+                className="accent-accent"
+              />
+              Remember me
+            </label>
+            <p className="text-xs text-text-muted">Only enable on a trusted device. Saves your token across browser restarts.</p>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
             <button disabled={pending} className="rounded-md bg-accent px-3 py-2 text-accent-foreground disabled:opacity-60">
               {pending ? 'Signing in…' : 'Sign in'}

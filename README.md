@@ -61,7 +61,7 @@ AUTH_TOKEN='your-long-random-secret' npx @isomoes/iread
 
 You can also use `--auth-token <token>`. Environment variables are preferable to putting secrets in command-line arguments. For Compose, set `AUTH_TOKEN` in your environment or Compose `.env` file before `docker compose up -d`. For `docker run`, pass `-e AUTH_TOKEN='your-long-random-secret'`.
 
-The web UI prompts for the token and remembers it for the current browser tab using sessionStorage. API clients must send `Authorization: Bearer <token>`, including for OPML export. The static UI remains public but no feed or article data is accessible without the token. Changing the server token requires restarting the server; clients with the old token must sign in again.
+The web UI prompts for the token and remembers it for the current browser tab using sessionStorage by default. Check **Remember me** to save it in localStorage across browser restarts; only use this on a trusted device. Invalid tokens are cleared from both storage locations. API clients must send `Authorization: Bearer <token>`, including for OPML export. The static UI remains public but no feed or article data is accessible without the token. Changing the server token requires restarting the server; clients with the old token must sign in again.
 
 Use HTTPS through a reverse proxy for public access, and configure proxy-side rate limiting against token guessing. Never expose an instance without a token unless access is restricted by another trusted layer. `AUTH_TOKEN` unset or empty preserves the existing unauthenticated behavior. `config/.env.example` documents the settings; the server reads environment variables, not that file automatically.
 

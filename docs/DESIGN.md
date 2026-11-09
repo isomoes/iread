@@ -23,7 +23,7 @@ In scope: add feed by URL, delete feed, refresh one (`r`) / refresh all (`R`), f
 
 Out of scope: multi-user/accounts, cloud sync, podcast/enclosure player, tagging rules engine, full-text extraction. We render only the feed-provided sanitized body.
 
-When `AUTH_TOKEN` is configured on the server, a token sign-in screen gates the reader. The token is kept in sessionStorage for the current tab and sent as a bearer header on API requests. Invalid or expired credentials return to sign-in and clear cached server data. With authentication disabled, the reader opens without a prompt.
+When `AUTH_TOKEN` is configured on the server, a token sign-in screen gates the reader. The token is kept in sessionStorage for the current tab by default and sent as a bearer header on API requests. An unchecked-by-default **Remember me** checkbox saves the token in localStorage after successful sign-in so it survives browser restarts, with a trusted-device warning. Switching storage modes removes the token from the other location. Invalid or expired credentials clear both storage locations, return to sign-in, and clear cached server data. With authentication disabled, the reader opens without a prompt.
 
 ---
 
