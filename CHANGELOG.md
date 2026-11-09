@@ -5,6 +5,11 @@ All notable changes to this project are recorded here.
 Format per entry: `<type>: <commit message> (@who) <hash>`
 Entries are grouped by version, newest first.
 
+## 0.2.6
+
+- feat(auth): add optional token authentication for public deployments (@isomoes) 0fbfb0f
+- fix(server): retry transient feed fetch failures and cancel proxy handshakes (@isomoes) 75eef5d
+
 ## 0.2.5
 
 - feat(server): support HTTP(S)_PROXY and NO_PROXY for feed fetching (@isomoes) a3c3dab
