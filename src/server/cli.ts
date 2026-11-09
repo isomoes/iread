@@ -31,6 +31,7 @@ Usage: iread [options]
 
 Options:
   -p, --port <port>  Port to listen on (default: $PORT or 8787)
+      --auth-token <token>  Require a bearer token (default: $AUTH_TOKEN; unset disables auth)
       --db <path>    SQLite database file
                      (default: $DB_PATH or ~/.config/iread/iread.db)
       --opml <path>  OPML file auto-saved on every subscription change
@@ -74,6 +75,12 @@ for (let i = 0; i < args.length; i++) {
         fail(`${arg} requires a port number (0-65535)`);
       }
       process.env.PORT = value;
+      break;
+    }
+    case '--auth-token': {
+      const value = args[++i];
+      if (!value || /\s/.test(value)) fail('--auth-token requires a non-empty token without whitespace');
+      process.env.AUTH_TOKEN = value;
       break;
     }
     case '--db': {

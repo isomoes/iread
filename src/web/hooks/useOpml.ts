@@ -33,13 +33,20 @@ export function useImportOpml() {
 }
 
 /** Trigger a browser download of the current feeds as an OPML file. */
-export function exportOpml(): void {
-  const a = document.createElement('a');
-  a.href = api.opmlExportUrl();
-  a.download = 'iread.opml';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+export async function exportOpml(): Promise<void> {
+  try {
+    const blob = await api.exportOpml();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'iread.opml';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (cause) {
+    toast({ kind: 'error', message: cause instanceof Error ? cause.message : 'Could not export OPML.' });
+  }
 }
 
 /** Hook wrapper exposing the import mutation + export trigger together. */

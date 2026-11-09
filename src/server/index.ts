@@ -14,6 +14,7 @@ import type { ApiError } from '../shared/types.js';
 import { feeds } from './routes/feeds.js';
 import { items } from './routes/items.js';
 import { opml } from './routes/opml.js';
+import { tokenAuth } from './auth.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.HOST || undefined;
@@ -27,6 +28,9 @@ import { syncOpmlMirror } from './feed-service.js';
 syncOpmlMirror();
 
 const app = new Hono();
+app.use('/api/*', tokenAuth(process.env.AUTH_TOKEN));
+app.use('/api', tokenAuth(process.env.AUTH_TOKEN));
+app.get('/api/auth', (c) => c.body(null, 204));
 
 // --- API routes (registered FIRST) -----------------------------------------
 

@@ -18,6 +18,7 @@ import type {
   RefreshFeedResponse,
   SmartView,
 } from '../../shared/types';
+import { authenticatedFetch } from './auth';
 
 const BASE = '/api';
 
@@ -58,7 +59,7 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
 
   let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, {
+    res = await authenticatedFetch(`${BASE}${path}`, {
       method: opts.method ?? 'GET',
       headers,
       body,
@@ -120,6 +121,16 @@ function buildItemsQuery(params: ListItemsParams): string {
 /* ---------- Public typed client ---------- */
 
 export const api = {
+  checkAuth(): Promise<void> {
+    return request<void>('/auth');
+  },
+
+  async exportOpml(): Promise<Blob> {
+    const response = await authenticatedFetch(`${BASE}/opml`);
+    if (!response.ok) throw new ApiError('Could not export OPML.', response.status);
+    return response.blob();
+  },
+
   /* Feeds */
   listFeeds(signal?: AbortSignal): Promise<ListFeedsResponse> {
     return request<ListFeedsResponse>('/feeds', { signal });
@@ -172,10 +183,6 @@ export const api = {
     });
   },
 
-  /** URL for GET export; used by an anchor download so the browser saves the file. */
-  opmlExportUrl(): string {
-    return `${BASE}/opml`;
-  },
 };
 
 export type Api = typeof api;

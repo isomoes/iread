@@ -21,10 +21,11 @@ A concise, local, single-user RSS/Atom reader inspired by newsboat. Keyboard-fir
 - OPML import (bulk add) and OPML export.
 - Light / dark / system theme (client-only, persisted to localStorage; not stored server-side).
 - Local SQLite persistence at `data/iread.db`.
+- Optional `AUTH_TOKEN` bearer authentication for every `/api` endpoint, disabled when unset or empty. Unauthenticated requests receive JSON `401` with code `UNAUTHORIZED` and a `WWW-Authenticate: Bearer` challenge. `GET /api/auth` returns `204` after authentication for the UI's startup check. Static UI assets remain public. The browser stores the token in sessionStorage and sends it in the Authorization header, including for OPML downloads. Public deployments require HTTPS; rate limiting can be applied at the reverse proxy.
 
 ### Out of scope (deliberate cut line)
 
-- No auth, no multi-user, no accounts. The DB file is the trust boundary.
+- No multi-user or accounts; optional shared-token access only.
 - No cloud sync, no hosted backend.
 - No podcast / enclosure media player (we keep the original link only).
 - No tagging, no filter-rules engine, no saved-search macros.

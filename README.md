@@ -2,7 +2,7 @@
 
 A concise, local, single-user RSS/Atom reader inspired by newsboat. Keyboard-first three-pane UI, TypeScript end to end. You add feeds by URL, refresh them on demand, and read server-sanitized article bodies in a calm, terminal-quiet reading surface with light, dark, and system themes.
 
-There is no auth, no multi-user, no cloud sync, and no background scheduler. Refresh is always user-initiated. All data lives in a single local SQLite file — by default `~/.config/iread/iread.db` — which is the trust boundary.
+Optional token authentication supports private access over a public network. There is no multi-user, no cloud sync, and no background scheduler. Refresh is always user-initiated. All data lives in a single local SQLite file — by default `~/.config/iread/iread.db`.
 
 ![iread UI](https://github.com/user-attachments/assets/ca9489c9-630f-4a67-9cd5-60c18ce3544e)
 
@@ -21,6 +21,7 @@ Usage: iread [options]
 
 Options:
   -p, --port <port>  Port to listen on (default: $PORT or 8787)
+      --auth-token <token>  Require a bearer token (default: $AUTH_TOKEN; unset disables auth)
       --db <path>    SQLite database file
                      (default: $DB_PATH or ~/.config/iread/iread.db)
       --opml <path>  OPML file auto-saved on every subscription change
@@ -49,6 +50,20 @@ docker compose up -d
 Build the image from the checkout instead of pulling it with `docker compose up -d --build`, or `docker build -t iread .`.
 
 `PORT` (default 8787), `HOST` (default all interfaces), `DB_PATH` (default `/data/iread.db`), and `OPML_PATH` (default `/data/feeds.opml`) are configurable via `-e`/`environment:`. With host networking, set `HOST=127.0.0.1` to restrict access to localhost; with bridge networking, leave `HOST` unset and restrict the published port instead. To store data in a host directory instead of a named volume, bind-mount it and make it writable by the image's unprivileged `node` user (uid 1000), e.g. `mkdir iread-data && sudo chown 1000:1000 iread-data` then `-v "$PWD/iread-data:/data"`.
+
+## Public network access
+
+Authentication is **disabled by default**. Set `AUTH_TOKEN` to a long, random secret to protect every API endpoint:
+
+```sh
+AUTH_TOKEN='your-long-random-secret' npx @isomoes/iread
+```
+
+You can also use `--auth-token <token>`. Environment variables are preferable to putting secrets in command-line arguments. For Compose, set `AUTH_TOKEN` in your environment or Compose `.env` file before `docker compose up -d`. For `docker run`, pass `-e AUTH_TOKEN='your-long-random-secret'`.
+
+The web UI prompts for the token and remembers it for the current browser tab using sessionStorage. API clients must send `Authorization: Bearer <token>`, including for OPML export. The static UI remains public but no feed or article data is accessible without the token. Changing the server token requires restarting the server; clients with the old token must sign in again.
+
+Use HTTPS through a reverse proxy for public access, and configure proxy-side rate limiting against token guessing. Never expose an instance without a token unless access is restricted by another trusted layer. `AUTH_TOKEN` unset or empty preserves the existing unauthenticated behavior. `config/.env.example` documents the settings; the server reads environment variables, not that file automatically.
 
 ## Features
 

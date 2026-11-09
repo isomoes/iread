@@ -21,7 +21,9 @@ This document is the UI source of truth. Every API field name referenced in the 
 
 In scope: add feed by URL, delete feed, refresh one (`r`) / refresh all (`R`), feed list with unread counts, smart views (All / Unread / Starred), article list with read/unread state plus published date, reader pane with server-sanitized content plus open-original link, mark read/unread, mark-all-read (`A`), star/unstar (`s`), search/filter (`/`), full keyboard navigation, OPML import/export, light/dark/system theme.
 
-Out of scope: auth/multi-user, cloud sync, podcast/enclosure player, tagging rules engine, full-text extraction. We render only the feed-provided sanitized body.
+Out of scope: multi-user/accounts, cloud sync, podcast/enclosure player, tagging rules engine, full-text extraction. We render only the feed-provided sanitized body.
+
+When `AUTH_TOKEN` is configured on the server, a token sign-in screen gates the reader. The token is kept in sessionStorage for the current tab and sent as a bearer header on API requests. Invalid or expired credentials return to sign-in and clear cached server data. With authentication disabled, the reader opens without a prompt.
 
 ---
 
